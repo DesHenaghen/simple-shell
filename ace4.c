@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <string.h>
 
 /* The name of our shell! */
 #define SHELLNAME "shell"
@@ -13,7 +14,9 @@
 #define UNCHANGED 0
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
 
-const char* get_input(char directory[]) { 
+#define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
+
+char* get_input(char directory[]) { 
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
   
   	fgets(input,MAXIN,stdin); /* fgets as scanf() can't handle blank lines */
@@ -25,6 +28,19 @@ const char* get_input(char directory[]) {
  
   	/* If we get to this point it there has to be input so just return it. */ 
   	return(input);
+}
+
+char** tokenise(char *line, char **tokens) {
+	int p;
+	char* token;	
+
+	p = 0;
+	token = strtok(line, DELIM); /* initial strtok call */
+	while (token) { /* While there's still more... */
+		tokens[p++] = token;
+		token = strtok(NULL, DELIM); /* ...grab the next token */
+	}
+	return tokens;
 }
 
 char* getHomeDir(){
@@ -47,7 +63,7 @@ char* getHomeDir(){
  * elements are arguments to that command. 
  *
  * Returns 0 if successful, otherwise returns 1. */
-int Execute(const char *argv[]) {
+int Execute(char *argv[]) {
 	/* Let's make sure there's actually something in the array! */
 	if (LEN(argv) == 0) {
 		fprintf(stderr,"%s: error: no arguments given to Execute().\n",SHELLNAME);
@@ -55,7 +71,7 @@ int Execute(const char *argv[]) {
 	}
 
 	/* The name of the command we want to run */
-	const char* filename = argv[0];
+	char* filename = argv[0];
 	
 	/* Ensure our file name is properly null-terminated. */
 	if (filename[LEN(filename)] != '\0') {
@@ -80,12 +96,12 @@ int Execute(const char *argv[]) {
 
 int main() {
 	char *directory = getHomeDir(); /*gets initial working directory*/
-	const char *input;
+	char *input;
+	char *argc[256];
 	while (1) {
 		input = get_input(directory);
-		/* TODO: tokenise input */
-		const char *args[] = {input};
-		Execute(args);
+		tokenise(input, argc);
+		Execute(argc);
 	}
 	return 0;
 }
