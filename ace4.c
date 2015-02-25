@@ -44,12 +44,14 @@ char* getHomeDir(){
  *
  * Arguments are passed as an array where the first element
  * is the name of the command we want to run and the following
- * elements are arguments to that command. */
-void Execute(const char *argv[]) {
+ * elements are arguments to that command. 
+ *
+ * Returns 0 if successful, otherwise returns 1. */
+int Execute(const char *argv[]) {
 	/* Let's make sure there's actually something in the array! */
 	if (LEN(argv) == 0) {
 		fprintf(stderr,"%s: error: no arguments given to Execute().\n",SHELLNAME);
-		return;
+		return(1);
 	}
 
 	/* The name of the command we want to run */
@@ -59,23 +61,21 @@ void Execute(const char *argv[]) {
 	if (filename[LEN(filename)] != '\0') {
 		/* It isn't?! Let us know on stderr. */
 		fprintf(stderr,"%s: error: filename is not null terminated.\n",SHELLNAME);
-		return;
+		return(1);
 	}
 	
 	/* Built-in commands */
-	
 	/* exit*/
 	if(!strcmp(filename,"exit")) {
 		exit(0);
 	}
 	
 	/* TODO: The rest of the built in commands. */
-
 	/* TODO: Search for command in path. */
 
 	/* We couldn't find it. */
 	printf("%s: %s: command not found.\n",SHELLNAME,filename);
-	return;
+	return(1);
 }
 
 int main() {
