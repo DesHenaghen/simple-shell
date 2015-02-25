@@ -23,18 +23,18 @@ const char* get_input(char directory[]) {
   	return(input);
 }
 
-void getHomeDir(){
+char* getHomeDir(){
 	uid_t uid = getuid(); /*gets current users ID*/
 	struct passwd *pw = getpwuid(uid); /*gets pw struct of current user*/
 	
 	if(pw == null) /*Basic error checking*/
 		printf("ERROR\n");
 
-	printf("%s:", pw->pw_dir);/*prints initial working directory from pw struct*/
+	return pw->pw_dir;/*returns initial working directory*/
 }
 
 int main() {
-	char directory[] = "HOME"; 
+	char directory[] = getHomeDir(); /*gets initial working directory*/
 	printf("%s", get_input(directory));
 	return 0;
 }
