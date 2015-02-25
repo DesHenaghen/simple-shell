@@ -13,7 +13,6 @@
 #define UNCHANGED 0
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
 
-
 const char* get_input(char directory[]) { 
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
   
@@ -32,7 +31,7 @@ char* getHomeDir(){
 	uid_t uid = getuid(); /*gets current users ID*/
 	struct passwd *pw = getpwuid(uid); /*gets pw struct of current user*/
 	
-	if(pw == null) /*Basic error checking*/
+	if(!pw) /*Basic error checking*/
 		printf("ERROR\n");
 
 	return pw->pw_dir;/*returns initial working directory*/
@@ -65,6 +64,11 @@ void Execute(const char *argv[]) {
 	
 	/* Built-in commands */
 	
+	/* exit*/
+	if(!strcmp(filename,"exit")) {
+		exit(0);
+	}
+	
 	/* TODO: The rest of the built in commands. */
 
 	/* TODO: Search for command in path. */
@@ -75,7 +79,13 @@ void Execute(const char *argv[]) {
 }
 
 int main() {
-	char directory[] = getHomeDir(); /*gets initial working directory*/
-	printf("%s", get_input(directory));
+	char *directory = getHomeDir(); /*gets initial working directory*/
+	const char *input;
+	while (1) {
+		input = get_input(directory);
+		/* TODO: tokenise input */
+		const char *args[] = {input};
+		Execute(args);
+	}
 	return 0;
 }
