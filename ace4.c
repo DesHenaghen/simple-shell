@@ -74,7 +74,7 @@ int Execute(char *argv[]) {
 	char* filename = argv[0];
 	
 	/* Ensure our file name is properly null-terminated. */
-	if (filename[LEN(filename)] != '\0') {
+	if (filename[LEN(filename)-1] != '\0') {
 		/* It isn't?! Let us know on stderr. */
 		fprintf(stderr,"%s: error: filename is not null terminated.\n",SHELLNAME);
 		return(1);
