@@ -30,7 +30,7 @@ char* get_input(char directory[]) {
   	return(input);
 }
 
-char** tokenise(char *line, char **tokens) {
+void tokenise(char *line, char **tokens) {
 	int p;
 	char* token;	
 
@@ -40,7 +40,6 @@ char** tokenise(char *line, char **tokens) {
 		tokens[p++] = token;
 		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
-	return tokens;
 }
 
 char* getHomeDir(){
