@@ -74,11 +74,11 @@ int Execute(char *argv[]) {
 	char* filename = argv[0];
 	
 	/* Ensure our file name is properly null-terminated. */
-	if (filename[LEN(filename)-1] != '\0') {
-		/* It isn't?! Let us know on stderr. */
+	/* This error checking seems to be doing more harm than good. */	
+	/*if (filename[LEN(filename)-1] != '\0') {
 		fprintf(stderr,"%s: error: filename is not null terminated.\n",SHELLNAME);
 		return(1);
-	}
+	}*/
 	
 	/* Built-in commands */
 	/* exit*/
