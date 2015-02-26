@@ -54,6 +54,7 @@ void tokenise(char *line, char **tokens) {
 		tokens[p++] = token;
 		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
+	tokens[p++] = '\0'; 
 }
 
 char* getcwdir(){
@@ -140,7 +141,7 @@ int Execute(char *argv[]) {
 		/* parent process */
 		/* parent will wait for the child to complete */
 		wait(NULL);
-		printf("Child Complete");
+		printf("Child Complete \n");
 		}
 
 	
