@@ -18,6 +18,8 @@
 
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 
+#define SZ_ARGV 50 /* Size of the argv array */
+
 const char* pathValue;
 
 void quit()
@@ -63,7 +65,8 @@ void tokenise(char *line, char **tokens) {
 
 	p = 0;
 	token = strtok(line, DELIM); /* initial strtok call */
-	while (token) { /* While there's still more... */
+	/* While there are more tokens and our array isn't full */
+	while (token && (p < SZ_ARGV - 2)) {
 		tokens[p++] = token;
 		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
@@ -164,7 +167,7 @@ int main()
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	char *directory;
 	char *input;
-	char *argv[50];
+	char *argv[SZ_ARGV];
 	while (1) {
 		directory = getcwdir(); /*gets current working directory*/
 		input = get_input(directory);
