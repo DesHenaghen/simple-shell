@@ -75,7 +75,7 @@ int Execute(char *argv[]) {
 	if (LEN(argv) == 0) {
 		fprintf(stderr,"%s: error: no arguments given to Execute().\n",SHELLNAME);
 		return(1);
-	}exit
+	}
 
 
 	/* The name of the command we want to run */
