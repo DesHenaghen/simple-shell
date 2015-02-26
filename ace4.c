@@ -25,8 +25,14 @@ char* getpath() {
 char* get_input(char directory[]) { 
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
   	do {
-	printf("%s >", directory); 
-  	fgets(input,MAXIN,stdin); /* get user input */   
+	printf("%s >", directory);
+ 
+	if(fgets(input,MAXIN,stdin) == NULL) /* get user input */  
+	{
+	  printf("\n");
+	  exit(0); 
+	}
+
 	}
 	/* fgets as scanf() can't handle blank lines */
   	/* check if it was a blank line, i.e. just a '\n' input...*/
@@ -86,7 +92,7 @@ int Execute(char *argv[]) {
 	}*/
 	
 	/* Internal commands */
-	/* TODO: interna; commands as another function */
+	/* TODO: internal commands as another function */
 	/* exit*/
 	if(EQ(filename,"exit")) {
 		exit(0);
@@ -106,6 +112,7 @@ int Execute(char *argv[]) {
 int main() {
 	char *directory = getHomeDir(); /*gets initial working directory*/
 	char *input;
+	char *buff;
 	char *argc[256];
 	while (1) {
 		input = get_input(directory);
