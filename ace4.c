@@ -107,9 +107,7 @@ int internal_command(char** argv) {
 		printf("%s\n", getpath());
 		return 0;
 	} else if (EQ(argv[0], "setpath")) {
-		if (LEN(argv) >= 2) {
-			setpath(argv[1]);
-		}
+		setpath(argv[1]);
 		return 0;
 	}
 
