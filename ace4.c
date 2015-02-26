@@ -9,28 +9,22 @@
 #define SHELLNAME "shell"
 /* The number of elements in an array */
 #define LEN(array) sizeof(array)/sizeof(array[0])
-/* Are two strings equal? */
-#define EQ(str1,str2) (!strcmp(str1,str2))
+
 #define UNCHANGED 0
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
 
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 
-/* Return the PATH environment variable */
-char* getpath() {
-	return getenv("PATH");
-}
-
 char* get_input(char directory[]) { 
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
-  	do {
-	printf("%s >", directory); 
-  	fgets(input,MAXIN,stdin); /* get user input */   
-	}
-	/* fgets as scanf() can't handle blank lines */
-  	/* check if it was a blank line, i.e. just a '\n' input...*/
-  	while('\n' == input[0]);   /*check if input is valid - i.e. not blank*/
-			
+  
+  	fgets(input,MAXIN,stdin); /* fgets as scanf() can't handle blank lines */
+  	/* First of all check if it was a blank line, i.e. just a '\n' input...*/
+  	while('\n' == input[0]) {    /*check if input is valid - i.e. not blank*/
+		printf("%s >", directory); 	/*prompt user for other input*/
+		fgets(input,MAXIN,stdin); 	/* get user input */ 
+  	} /* TO ASK - why does fgets not return a char* in this case? */
+ 
   	/* If we get to this point it there has to be input so just return it. */ 
   	return(input);
 }
@@ -75,7 +69,7 @@ int Execute(char *argv[]) {
 	if (LEN(argv) == 0) {
 		fprintf(stderr,"%s: error: no arguments given to Execute().\n",SHELLNAME);
 		return(1);
-	}exit
+	}
 
 
 	/* The name of the command we want to run */
@@ -88,17 +82,13 @@ int Execute(char *argv[]) {
 		return(1);
 	}*/
 	
-	/* Internal commands */
-	/* TODO: interna; commands as another function */
+	/* Built-in commands */
 	/* exit*/
-	if(EQ(filename,"exit")) {
+	if(!strcmp(filename,"exit")) {
 		exit(0);
-	} else if (EQ(filename,"getpath")) {
-		printf("%s\n",getpath());
-		return 0;
 	}
 	
-	/* TODO: The rest of the internal commands. */
+	/* TODO: The rest of the built in commands. */
 	/* TODO: Search for command in path. */
 
 	/* We couldn't find it. */
