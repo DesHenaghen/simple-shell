@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <stdbool.h>
 
 /* The name of our shell! */
 #define SHELLNAME "dora"
@@ -57,8 +58,8 @@ void setpath(char* path) {
 char *get_input() {
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
 	char *cwd = getcwdir();
-	int c;
-	int clearinput = 1, i;
+	bool too_much_input = true;
+	int i;
 
 	do {
 		printf("[%s]%% ", cwd);
@@ -71,16 +72,17 @@ char *get_input() {
 	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
 
 	/* Clear the rest of the line if it was longer than the input array */
-	
 	for (i = 0; i < MAXIN; i++) {
-		if (input[i] == '\n')
-			clearinput = 0;
-		if (input[i] == '\0')
-			break;
+		switch (input[i]) {
+		case '\n': too_much_input = false;
+		case '\0': break;
+		}
 	}
-	if (clearinput) {
-		while ((c = getchar()) != '\n');
+
+	if (too_much_input) {
+		while (getchar() != '\n');
 	}
+
 	/* If we get to this point it there has to be input so just return it. */
 	return (input);
 }
