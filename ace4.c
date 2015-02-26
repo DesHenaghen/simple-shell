@@ -5,6 +5,12 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <string.h>
+#include <unistd.h>
+
+
+
+
+
 
 /* The name of our shell! */
 #define SHELLNAME "shell"
@@ -63,14 +69,15 @@ char* getHomeDir(){
  *
  * Returns 0 if successful, otherwise returns 1. */
 int Execute(char *argv[]) {
+	pid_t pid; 
+	
 	/* Let's make sure there's actually something in the array! */
 	if (LEN(argv) == 0) {
 		fprintf(stderr,"%s: error: no arguments given to Execute().\n",SHELLNAME);
 		return(1);
 	}
 
-	/* The name of the command we want to run */
-	char* filename = argv[0];
+	
 	
 	/* Ensure our file name is properly null-terminated. */
 	/* This error checking seems to be doing more harm than good. */	
@@ -81,16 +88,42 @@ int Execute(char *argv[]) {
 	
 	/* Built-in commands */
 	/* exit*/
-	if(!strcmp(filename,"exit")) {
+	if(!strcmp(argv[0],"exit")) {
 		exit(0);
 	}
 	
 	/* TODO: The rest of the built in commands. */
 	/* TODO: Search for command in path. */
+	
 
-	/* We couldn't find it. */
-	printf("%s: %s: command not found.\n",SHELLNAME,filename);
-	return(1);
+	
+	/* fork a child process */
+		pid = fork();
+		if (pid < 0)
+		{
+		/* error occurred */
+		fprintf(stderr, "Fork Failed");
+		return 1;
+		}
+		else if (pid == 0)
+		{
+		/* child process */
+		
+		execvp(argv[0], argv);
+		perror(argv[0]);
+		exit(0);
+		}
+		else
+		{
+		/* parent process */
+		/* parent will wait for the child to complete */
+		wait(NULL);
+		printf("Child Complete");
+		}
+
+	
+	
+	
 }
 
 int main() {
