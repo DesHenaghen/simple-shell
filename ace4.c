@@ -2,11 +2,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pwd.h>
-#include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <sys/types.h>
 
 
 
@@ -16,17 +14,27 @@
 #define SHELLNAME "shell"
 /* The number of elements in an array */
 #define LEN(array) sizeof(array)/sizeof(array[0])
-
+/* Are two strings equal? */
+#define EQ(str1,str2) (!strcmp(str1,str2))
 #define UNCHANGED 0
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
 
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 
+const char* pathValue;
+
+/* Return the PATH environment variable */
+char* getpath() {
+	return getenv("PATH");
+}
+
 char* get_input(char directory[]) { 
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
   	do {
-	printf("%s >", directory); 
-  	fgets(input,MAXIN,stdin); /* get user input */   
+	printf("%s >", directory);
+ 
+	if(fgets(input,MAXIN,stdin) == NULL) /* get user input */  
+	  quit(); /*Exit on null pointer, given by fgets()*/
 	}
 	/* fgets as scanf() can't handle blank lines */
   	/* check if it was a blank line, i.e. just a '\n' input...*/
@@ -48,14 +56,24 @@ void tokenise(char *line, char **tokens) {
 	}
 }
 
-char* getHomeDir(){
-	uid_t uid = getuid(); /*gets current users ID*/
-	struct passwd *pw = getpwuid(uid); /*gets pw struct of current user*/
-	
-	if(!pw) /*Basic error checking*/
-		printf("ERROR\n");
+char* getcwdir(){
+	long size;
+	char *buf;
+	char *ptr;
 
-	return pw->pw_dir;/*returns initial working directory*/
+	size = pathconf(".", _PC_PATH_MAX);
+
+	if ((buf = (char *)malloc((size_t)size)) != NULL)
+	    ptr = getcwd(buf, (size_t)size);
+
+	return ptr;
+}
+
+void quit()
+{
+	setenv("PATH", pathValue, 1);
+	printf("\n");
+	exit(0);
 }
 
 /* Execute looks for the command specified by filename.
@@ -86,13 +104,17 @@ int Execute(char *argv[]) {
 		return(1);
 	}*/
 	
-	/* Built-in commands */
+	/* Internal commands */
+	/* TODO: internal commands as another function */
 	/* exit*/
-	if(!strcmp(argv[0],"exit")) {
-		exit(0);
+	if(EQ(filename,"exit")) {
+		quit();
+	} else if (EQ(filename,"getpath")) {
+		printf("%s\n",getpath());
+		return 0;
 	}
 	
-	/* TODO: The rest of the built in commands. */
+	/* TODO: The rest of the internal commands. */
 	/* TODO: Search for command in path. */
 	
 
@@ -126,14 +148,19 @@ int Execute(char *argv[]) {
 	
 }
 
-int main() {
-	char *directory = getHomeDir(); /*gets initial working directory*/
+int main() 
+{
+	pathValue = getpath();
+	chdir(getenv("HOME")); /*Changes current working directory to HOME */
+	char *directory;
 	char *input;
 	char *argc[256];
 	while (1) {
+		directory = getcwdir(); /*gets current working directory*/
 		input = get_input(directory);
 		tokenise(input, argc);
 		Execute(argc);
 	}
 	return 0;
 }
+
