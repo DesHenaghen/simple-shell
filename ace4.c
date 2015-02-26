@@ -25,7 +25,6 @@ const char* pathValue;
 void quit()
 {
 	setenv("PATH", pathValue, 1);
-	printf("\n");
 	exit(0);
 }
 
