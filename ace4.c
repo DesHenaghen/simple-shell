@@ -35,10 +35,14 @@ char* getpath()
 
 void setpath(char* path)
 {
-	if(setenv("PATH", path, 1) <0);
+	if(path != NULL)
 	{
-		printf("%s\n",strerror(errno));
+		setenv("PATH", path, 1);
 	}
+	else
+	{
+		printf("Invalid path value: null\n");
+	}	
 }
 
 char* get_input(char directory[]) { 
