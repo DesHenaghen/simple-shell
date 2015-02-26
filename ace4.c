@@ -43,7 +43,7 @@ char* get_input(char directory[]) {
 	int c;
 
 	do {
-		printf("%s >", directory);
+		printf("[%s]%% ",directory);
 
 		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
 			quit(); /*Exit on null pointer, given by fgets()*/
