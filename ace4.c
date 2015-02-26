@@ -25,6 +25,10 @@ void quit() {
 	exit(0);
 }
 
+void print_error(char* msg) {
+	fprintf(stderr, "%s: error: %s\n",SHELLNAME, msg);
+}
+
 /* Return the PATH environment variable */
 char* getpath() {
 	return getenv("PATH");
@@ -43,7 +47,7 @@ char* get_input(char directory[]) {
 	int c;
 
 	do {
-		printf("[%s]%% ",directory);
+		printf("[%s]%% ", directory);
 
 		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
 			quit(); /*Exit on null pointer, given by fgets()*/
@@ -94,33 +98,7 @@ char* getcwdir() {
 	return ptr;
 }
 
-/* Execute looks for the command specified by filename.
- * The order it looks for the command is:
- * 	1. Among built-in commands,
- * 	2. In the PATH.
- *
- * Arguments are passed as an array where the first element
- * is the name of the command we want to run and the following
- * elements are arguments to that command. 
- *
- * Returns 0 if successful, otherwise returns 1. */
-int Execute(char *argv[]) {
-	pid_t pid;
-
-	/* Let's make sure there's actually something in the array! */
-	if (LEN(argv) == 0) {
-		fprintf(stderr, "%s: error: no arguments given to Execute().\n",
-				SHELLNAME);
-		return (1);
-	}
-
-	/* Ensure our file name is properly null-terminated. */
-	/* This error checking seems to be doing more harm than good. */
-	/*if (filename[LEN(filename)-1] != '\0') {
-	 fprintf(stderr,"%s: error: filename is not null terminated.\n",SHELLNAME);
-	 return(1);
-	 }*/
-
+int internal_command(char** argv) {
 	/* Internal commands */
 	/* TODO: internal commands as another function */
 	/* exit*/
@@ -134,18 +112,21 @@ int Execute(char *argv[]) {
 		return 0;
 	}
 
-	/* TODO: The rest of the internal commands. */
-	/* TODO: Search for command in path. */
+	/* Return negative number if command not found */
+	return -1;
+}
+
+void external_command(char** argv) {
+	pid_t pid;
 
 	/* fork a child process */
 	pid = fork();
 	if (pid < 0) {
 		/* error occurred */
 		fprintf(stderr, "Fork Failed");
-		return 1;
+		return;
 	} else if (pid == 0) {
 		/* child process */
-
 		execvp(argv[0], argv);
 		perror(argv[0]);
 		exit(0);
@@ -153,7 +134,27 @@ int Execute(char *argv[]) {
 		/* parent process */
 		/* parent will wait for the child to complete */
 		wait(NULL);
-		printf("Child Complete \n");
+		/*printf("Child Complete\n");*/
+	}
+}
+
+/* Execute looks for the command specified by filename.
+ * The order it looks for the command is:
+ * 	1. Among built-in commands,
+ * 	2. In the PATH.
+ *
+ * Arguments are passed as an array where the first element
+ * is the name of the command we want to run and the following
+ * elements are arguments to that command. */
+void Execute(char *argv[]) {
+	/* Let's make sure there's actually something in the array! */
+	if (LEN(argv) == 0) {
+		print_error("no arguments given to Execute()");
+		return;
+	}
+
+	if (internal_command(argv) < 0) {
+		external_command(argv);
 	}
 }
 
