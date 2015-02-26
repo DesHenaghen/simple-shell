@@ -107,9 +107,9 @@ int Execute(char *argv[]) {
 	/* Internal commands */
 	/* TODO: internal commands as another function */
 	/* exit*/
-	if(EQ(filename,"exit")) {
+	if(EQ(argv[0],"exit")) {
 		quit();
-	} else if (EQ(filename,"getpath")) {
+	} else if (EQ(argv[0],"getpath")) {
 		printf("%s\n",getpath());
 		return 0;
 	}
