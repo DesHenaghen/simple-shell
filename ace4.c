@@ -13,8 +13,9 @@
 #define EQ(str1,str2) (!strcmp(str1,str2))
 #define UNCHANGED 0
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
-
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
+
+const char* pathValue;
 
 /* Return the PATH environment variable */
 char* getpath() {
@@ -27,11 +28,7 @@ char* get_input(char directory[]) {
 	printf("%s >", directory);
  
 	if(fgets(input,MAXIN,stdin) == NULL) /* get user input */  
-	{
-	  printf("\n");
-	  exit(0); 
-	}
-
+	  quit(); /*Exit on null pointer, given by fgets()*/
 	}
 	/* fgets as scanf() can't handle blank lines */
   	/* check if it was a blank line, i.e. just a '\n' input...*/
@@ -66,6 +63,13 @@ char* getcwdir(){
 	return ptr;
 }
 
+void quit()
+{
+	setenv("PATH", pathValue, 1);
+	printf("\n");
+	exit(0);
+}
+
 /* Execute looks for the command specified by filename.
  * The order it looks for the command is:
  * 	1. Among built-in commands,
@@ -98,7 +102,7 @@ int Execute(char *argv[]) {
 	/* TODO: internal commands as another function */
 	/* exit*/
 	if(EQ(filename,"exit")) {
-		exit(0);
+		quit();
 	} else if (EQ(filename,"getpath")) {
 		printf("%s\n",getpath());
 		return 0;
@@ -112,7 +116,9 @@ int Execute(char *argv[]) {
 	return(1);
 }
 
-int main() {
+int main() 
+{
+	pathValue = getpath();
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	char *directory;
 	char *input;
