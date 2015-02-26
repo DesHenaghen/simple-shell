@@ -2,8 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pwd.h>
-#include <sys/types.h>
+#include <unistd.h>
 #include <string.h>
 
 /* The name of our shell! */
@@ -54,14 +53,17 @@ void tokenise(char *line, char **tokens) {
 	}
 }
 
-char* getHomeDir(){
-	uid_t uid = getuid(); /*gets current users ID*/
-	struct passwd *pw = getpwuid(uid); /*gets pw struct of current user*/
-	
-	if(!pw) /*Basic error checking*/
-		printf("ERROR\n");
+char* getcwdir(){
+	long size;
+	char *buf;
+	char *ptr;
 
-	return pw->pw_dir;/*returns initial working directory*/
+	size = pathconf(".", _PC_PATH_MAX);
+
+	if ((buf = (char *)malloc((size_t)size)) != NULL)
+	    ptr = getcwd(buf, (size_t)size);
+
+	return ptr;
 }
 
 /* Execute looks for the command specified by filename.
@@ -80,6 +82,7 @@ int Execute(char *argv[]) {
 		fprintf(stderr,"%s: error: no arguments given to Execute().\n",SHELLNAME);
 		return(1);
 	}
+
 
 	/* The name of the command we want to run */
 	char* filename = argv[0];
@@ -110,14 +113,17 @@ int Execute(char *argv[]) {
 }
 
 int main() {
-	char *directory = getHomeDir(); /*gets initial working directory*/
+	chdir(getenv("HOME")); /*Changes current working directory to HOME */
+	char *directory;
 	char *input;
 	char *buff;
 	char *argc[256];
 	while (1) {
+		directory = getcwdir(); /*gets current working directory*/
 		input = get_input(directory);
 		tokenise(input, argc);
 		Execute(argc);
 	}
 	return 0;
 }
+
