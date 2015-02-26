@@ -25,8 +25,19 @@ void quit() {
 	exit(0);
 }
 
-void print_error(char* msg) {
-	fprintf(stderr, "%s: error: %s\n",SHELLNAME, msg);
+char* getcwdir() {
+	long size;
+	char *buf;
+	char *ptr;
+
+	size = pathconf(".", _PC_PATH_MAX);
+
+	/* Potential problem: The allocated memory is never freed. Is
+	 * that an issue? (resource leak?) */
+	if ((buf = (char *) malloc((size_t) size)) != NULL)
+		ptr = getcwd(buf, (size_t) size);
+
+	return ptr;
 }
 
 /* Return the PATH environment variable */
@@ -42,12 +53,13 @@ void setpath(char* path) {
 	}
 }
 
-char* get_input(char directory[]) {
+char* get_input() {
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
+	char *cwd = getcwdir();
 	int c;
 
 	do {
-		printf("[%s]%% ", directory);
+		printf("[%s]%% ", cwd);
 
 		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
 			quit(); /*Exit on null pointer, given by fgets()*/
@@ -85,19 +97,6 @@ void tokenise(char *line, char **tokens) {
 	tokens[p++] = '\0';
 }
 
-char* getcwdir() {
-	long size;
-	char *buf;
-	char *ptr;
-
-	size = pathconf(".", _PC_PATH_MAX);
-
-	if ((buf = (char *) malloc((size_t) size)) != NULL)
-		ptr = getcwd(buf, (size_t) size);
-
-	return ptr;
-}
-
 int internal_command(char** argv) {
 	/* Internal commands */
 	/* TODO: internal commands as another function */
@@ -108,7 +107,9 @@ int internal_command(char** argv) {
 		printf("%s\n", getpath());
 		return 0;
 	} else if (EQ(argv[0], "setpath")) {
-		setpath(argv[1]);
+		if (LEN(argv) >= 2) {
+			setpath(argv[1]);
+		}
 		return 0;
 	}
 
@@ -149,7 +150,7 @@ void external_command(char** argv) {
 void Execute(char *argv[]) {
 	/* Let's make sure there's actually something in the array! */
 	if (LEN(argv) == 0) {
-		print_error("no arguments given to Execute()");
+		fprintf(stderr,"No arguments given to Execute()");
 		return;
 	}
 
@@ -161,12 +162,10 @@ void Execute(char *argv[]) {
 int main() {
 	pathValue = getpath();
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
-	char *directory;
 	char *input;
 	char *argv[SZ_ARGV];
 	while (1) {
-		directory = getcwdir(); /*gets current working directory*/
-		input = get_input(directory);
+		input = get_input();
 		tokenise(input, argv);
 		Execute(argv);
 	}
