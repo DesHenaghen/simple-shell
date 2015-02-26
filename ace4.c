@@ -30,6 +30,8 @@ char* getpath() {
 
 char* get_input(char directory[]) { 
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
+	int c;
+
   	do {
 	printf("%s >", directory);
  
@@ -39,7 +41,17 @@ char* get_input(char directory[]) {
 	/* fgets as scanf() can't handle blank lines */
   	/* check if it was a blank line, i.e. just a '\n' input...*/
   	while('\n' == input[0]);   /*check if input is valid - i.e. not blank*/
-			
+	
+	int clearinput = 1, i;
+	for (i = 0; i < MAXIN; i++) {
+		if (input[i] == '\n')
+			clearinput = 0;
+		if (input[i] == '\0')
+			break;
+	}
+	if (clearinput) {
+		while ((c = getchar()) != '\n' && c != EOF);
+	}
   	/* If we get to this point it there has to be input so just return it. */ 
   	return(input);
 }
