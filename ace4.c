@@ -116,7 +116,6 @@ int main() {
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	char *directory;
 	char *input;
-	char *buff;
 	char *argc[256];
 	while (1) {
 		directory = getcwdir(); /*gets current working directory*/
