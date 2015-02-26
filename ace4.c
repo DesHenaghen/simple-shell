@@ -5,10 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-
-
-
-
+#include <errno.h>
 
 /* The name of our shell! */
 #define SHELLNAME "shell"
@@ -23,9 +20,25 @@
 
 const char* pathValue;
 
+void quit()
+{
+	setenv("PATH", pathValue, 1);
+	printf("\n");
+	exit(0);
+}
+
 /* Return the PATH environment variable */
-char* getpath() {
+char* getpath() 
+{
 	return getenv("PATH");
+}
+
+void setpath(char* path)
+{
+	if(setenv("PATH", path, 1) <0);
+	{
+		printf("%s\n",strerror(errno));
+	}
 }
 
 char* get_input(char directory[]) { 
@@ -70,13 +83,6 @@ char* getcwdir(){
 	return ptr;
 }
 
-void quit()
-{
-	setenv("PATH", pathValue, 1);
-	printf("\n");
-	exit(0);
-}
-
 /* Execute looks for the command specified by filename.
  * The order it looks for the command is:
  * 	1. Among built-in commands,
@@ -110,8 +116,15 @@ int Execute(char *argv[]) {
 	/* exit*/
 	if(EQ(argv[0],"exit")) {
 		quit();
-	} else if (EQ(argv[0],"getpath")) {
+	} 
+	else if (EQ(argv[0],"getpath")) 
+	{
 		printf("%s\n",getpath());
+		return 0;
+	}
+	else if (EQ(argv[0],"setpath"))
+	{
+		setpath(argv[1]);
 		return 0;
 	}
 	
@@ -143,10 +156,6 @@ int Execute(char *argv[]) {
 		wait(NULL);
 		printf("Child Complete \n");
 		}
-
-	
-	
-	
 }
 
 int main() 
