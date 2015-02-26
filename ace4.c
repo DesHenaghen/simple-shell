@@ -164,12 +164,12 @@ int main()
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	char *directory;
 	char *input;
-	char *argc[256];
+	char *argv[50];
 	while (1) {
 		directory = getcwdir(); /*gets current working directory*/
 		input = get_input(directory);
-		tokenise(input, argc);
-		Execute(argc);
+		tokenise(input, argv);
+		Execute(argv);
 	}
 	return 0;
 }
