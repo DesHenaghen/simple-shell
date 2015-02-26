@@ -5,10 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-
-
-
-
+#include <errno.h>
 
 /* The name of our shell! */
 #define SHELLNAME "shell"
@@ -21,11 +18,32 @@
 
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 
+#define SZ_ARGV 50 /* Size of the argv array */
+
 const char* pathValue;
 
+void quit()
+{
+	setenv("PATH", pathValue, 1);
+	exit(0);
+}
+
 /* Return the PATH environment variable */
-char* getpath() {
+char* getpath() 
+{
 	return getenv("PATH");
+}
+
+void setpath(char* path)
+{
+	if(path != NULL)
+	{
+		setenv("PATH", path, 1);
+	}
+	else
+	{
+		printf("Invalid path value: null\n");
+	}	
 }
 
 char* get_input(char directory[]) { 
@@ -62,7 +80,8 @@ void tokenise(char *line, char **tokens) {
 
 	p = 0;
 	token = strtok(line, DELIM); /* initial strtok call */
-	while (token) { /* While there's still more... */
+	/* While there are more tokens and our array isn't full */
+	while (token && (p < SZ_ARGV - 2)) {
 		tokens[p++] = token;
 		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
@@ -80,13 +99,6 @@ char* getcwdir(){
 	    ptr = getcwd(buf, (size_t)size);
 
 	return ptr;
-}
-
-void quit()
-{
-	setenv("PATH", pathValue, 1);
-	printf("\n");
-	exit(0);
 }
 
 /* Execute looks for the command specified by filename.
@@ -122,8 +134,15 @@ int Execute(char *argv[]) {
 	/* exit*/
 	if(EQ(argv[0],"exit")) {
 		quit();
-	} else if (EQ(argv[0],"getpath")) {
+	} 
+	else if (EQ(argv[0],"getpath")) 
+	{
 		printf("%s\n",getpath());
+		return 0;
+	}
+	else if (EQ(argv[0],"setpath"))
+	{
+		setpath(argv[1]);
 		return 0;
 	}
 	
@@ -155,10 +174,6 @@ int Execute(char *argv[]) {
 		wait(NULL);
 		printf("Child Complete \n");
 		}
-
-	
-	
-	
 }
 
 int main() 
@@ -167,7 +182,7 @@ int main()
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	char *directory;
 	char *input;
-	char *argv[50];
+	char *argv[SZ_ARGV];
 	while (1) {
 		directory = getcwdir(); /*gets current working directory*/
 		input = get_input(directory);
