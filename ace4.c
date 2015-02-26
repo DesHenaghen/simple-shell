@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <errno.h>
 
@@ -18,14 +19,14 @@
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 #define SZ_ARGV 50 /* Size of the argv array */
 
-const char* pathValue;
+const char *pathValue;
 
 void quit() {
 	setenv("PATH", pathValue, 1);
 	exit(0);
 }
 
-char* getcwdir() {
+char *getcwdir() {
 	long size;
 	char *buf;
 	char *ptr;
@@ -41,7 +42,7 @@ char* getcwdir() {
 }
 
 /* Return the PATH environment variable */
-char* getpath() {
+char *getpath() {
 	return getenv("PATH");
 }
 
@@ -53,10 +54,11 @@ void setpath(char* path) {
 	}
 }
 
-char* get_input() {
+char *get_input() {
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
 	char *cwd = getcwdir();
 	int c;
+	int clearinput = 1, i;
 
 	do {
 		printf("[%s]%% ", cwd);
@@ -69,7 +71,7 @@ char* get_input() {
 	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
 
 	/* Clear the rest of the line if it was longer than the input array */
-	int clearinput = 1, i;
+	
 	for (i = 0; i < MAXIN; i++) {
 		if (input[i] == '\n')
 			clearinput = 0;
@@ -85,19 +87,19 @@ char* get_input() {
 
 void tokenise(char *line, char **tokens) {
 	int p;
-	char* token;
+	char *token;
 
 	p = 0;
 	token = strtok(line, DELIM); /* initial strtok call */
 	/* While there are more tokens and our array isn't full */
-	while (token && (p < SZ_ARGV - 2)) {
+	while (token && (p < SZ_ARGV - 1)) {
 		tokens[p++] = token;
 		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
-	tokens[p++] = '\0';
+	tokens[p] = '\0';
 }
 
-int internal_command(char** argv) {
+int internal_command(char **argv) {
 	/* Internal commands */
 	/* TODO: internal commands as another function */
 	/* exit*/
@@ -115,7 +117,7 @@ int internal_command(char** argv) {
 	return -1;
 }
 
-void external_command(char** argv) {
+void external_command(char **argv) {
 	pid_t pid;
 
 	/* fork a child process */
@@ -158,10 +160,11 @@ void Execute(char *argv[]) {
 }
 
 int main() {
-	pathValue = getpath();
-	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	char *input;
 	char *argv[SZ_ARGV];
+
+	pathValue = getpath();
+	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
 		tokenise(input, argv);
