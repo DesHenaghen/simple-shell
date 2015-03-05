@@ -28,7 +28,7 @@ void quit() {
 	exit(0);
 }
 
-char *getcwdir() {
+char* getcwdir() {
 	long size;
 	char *buf;
 	char *ptr;
@@ -41,6 +41,14 @@ char *getcwdir() {
 		ptr = getcwd(buf, (size_t) size);
 
 	return ptr;
+}
+
+void cd(char **argv) {
+	if (argv[1]) {
+		chdir(argv[1]);
+	} else {
+		chdir(getenv("HOME"));
+	}
 }
 
 /* Return the PATH environment variable */
@@ -62,7 +70,7 @@ void setpath(char **argv) {
 		printf("Too many parameters\n");
 }
 
-char *get_input() {
+char* get_input() {
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
 	char *cwd = getcwdir();
 	bool too_much_input = true;
@@ -115,6 +123,9 @@ int internal_command(char **argv) {
 	/* exit*/
 	if (EQ(argv[0], "exit")) {
 		quit();
+	} else if (EQ(argv[0], "cd")) {
+		cd(argv);
+		return 0;
 	} else if (EQ(argv[0], "getpath")) {
 		getpath(argv);
 		return 0;
