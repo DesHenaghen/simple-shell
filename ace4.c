@@ -37,6 +37,7 @@ const char *pathValue;
 
 void quit() {
 	setenv("PATH", pathValue, 1);
+	printf("%s\n",getenv("PATH"));
 	exit(0);
 }
 
@@ -55,32 +56,29 @@ char *getcwdir() {
 	return ptr;
 }
 
-/* Return the PATH environment variable */
-char *getpath() {
-	return getenv("PATH");
-}
-
-void setpath(char* path) {
-	if (path != NULL) {
-		setenv("PATH", path, 1);
+void cd(char **argv) {
+	if (argv[1]) {
+		chdir(argv[1]);
 	} else {
-		printf("Invalid path value: null\n");
+		chdir(getenv("HOME"));
 	}
 }
 
+/* Return the PATH environment variable */
+void getpath(char **argv) {
+	if(argv[1] == NULL)
+		printf("%s\n", getenv("PATH"));
+	else
+		printf("Too many parameters\n");
+}
 
-void tokenise(char *line, char **tokens) {
-	int p;
-	char *token;
-
-	p = 0;
-	token = strtok(line, DELIM); /* initial strtok call */
-	/* While there are more tokens and our array isn't full */
-	while (token && (p < SZ_ARGV - 1)) {
-		tokens[p++] = token;
-		token = strtok(NULL, DELIM); /* ...grab the next token */
-	}
-	tokens[p] = '\0';
+void setpath(char **argv) {
+	if(argv[2] == NULL){
+		if (argv[1] != NULL) {
+			setenv("PATH", argv[1], 1);
+		} else {
+			printf("Invalid path value: null\n");
+		}
 }
 
 /* 
@@ -131,7 +129,6 @@ void history(){
 	}
 }
 
-
 char *get_input() {
 	
 	static int count; 
@@ -147,16 +144,16 @@ char *get_input() {
 		/*Exits on ctrl+D*/
 		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
 			quit(); /*Exit on null pointer, given by fgets()*/
+		}
 	}
 	/* fgets as scanf() can't handle blank lines */
 	/* check if it was a blank line, i.e. just a '\n' input...*/
 	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
 
-	/* Clear the rest of the terminal if input was longer than the input array */
-	for (i = 0; i < MAXIN; i++) {
+	/* Clear the rest of the line if it was longer than the input array */
+	for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
 		switch (input[i]) {
-		case '\n': too_much_input = false;
-		case '\0': break;
+		case '\n': too_much_input = false; break;
 		}
 	}
 
@@ -181,17 +178,34 @@ char *get_input() {
 	return (input);
 }
 
+void tokenise(char *line, char **tokens) {
+	int p;
+	char *token;
+
+	p = 0;
+	token = strtok(line, DELIM); /* initial strtok call */
+	/* While there are more tokens and our array isn't full */
+	while (token && (p < SZ_ARGV - 1)) {
+		tokens[p++] = token;
+		token = strtok(NULL, DELIM); /* ...grab the next token */
+	}
+	tokens[p] = '\0';
+}
+
 int internal_command(char **argv) {
 	/* Internal commands */
 	/* TODO: internal commands as another function */
 	/* exit*/
 	if (EQ(argv[0], "exit")) {
 		quit();
+	} else if (EQ(argv[0], "cd")) {
+		cd(argv);
+		return 0;
 	} else if (EQ(argv[0], "getpath")) {
-		printf("%s\n", getpath());
+		getpath(argv);
 		return 0;
 	} else if (EQ(argv[0], "setpath")) {
-		setpath(argv[1]);
+		setpath(argv);
 		return 0;
 	} else if (EQ(argv[0], "history")) {
 		history(); 
@@ -248,7 +262,7 @@ int main() {
 	char *input;
 	char *argv[SZ_ARGV];
 
-	pathValue = getpath();
+	pathValue = getenv("PATH");
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
