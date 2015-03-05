@@ -44,7 +44,7 @@ char *getcwdir() {
 }
 
 /* Return the PATH environment variable */
-void *getpath(char **argv) {
+void getpath(char **argv) {
 	if(argv[1] == NULL)
 		printf("%s\n", getenv("PATH"));
 	else
@@ -81,10 +81,9 @@ char *get_input() {
 	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
 
 	/* Clear the rest of the line if it was longer than the input array */
-	for (i = 0; i < MAXIN; i++) {
+	for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
 		switch (input[i]) {
-		case '\n': too_much_input = false;
-		case '\0': break;
+		case '\n': too_much_input = false; break;
 		}
 	}
 
