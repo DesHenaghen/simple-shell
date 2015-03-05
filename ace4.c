@@ -24,6 +24,7 @@ const char *pathValue;
 
 void quit() {
 	setenv("PATH", pathValue, 1);
+	printf("%s\n",getenv("PATH"));
 	exit(0);
 }
 
@@ -43,16 +44,22 @@ char *getcwdir() {
 }
 
 /* Return the PATH environment variable */
-char *getpath() {
-	return getenv("PATH");
+void *getpath(char **argv) {
+	if(argv[1] == NULL)
+		printf("%s\n", getenv("PATH"));
+	else
+		printf("Too many parameters\n");
 }
 
-void setpath(char* path) {
-	if (path != NULL) {
-		setenv("PATH", path, 1);
-	} else {
-		printf("Invalid path value: null\n");
-	}
+void setpath(char **argv) {
+	if(argv[2] == NULL){
+		if (argv[1] != NULL) {
+			setenv("PATH", argv[1], 1);
+		} else {
+			printf("Invalid path value: null\n");
+		}
+	} else 
+		printf("Too many parameters\n");
 }
 
 char *get_input() {
@@ -64,8 +71,10 @@ char *get_input() {
 	do {
 		printf("[%s]%% ", cwd);
 
-		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
+		if (fgets(input, MAXIN, stdin) == NULL){ /* get user input */
+			printf("\n");
 			quit(); /*Exit on null pointer, given by fgets()*/
+		}
 	}
 	/* fgets as scanf() can't handle blank lines */
 	/* check if it was a blank line, i.e. just a '\n' input...*/
@@ -108,10 +117,10 @@ int internal_command(char **argv) {
 	if (EQ(argv[0], "exit")) {
 		quit();
 	} else if (EQ(argv[0], "getpath")) {
-		printf("%s\n", getpath());
+		getpath(argv);
 		return 0;
 	} else if (EQ(argv[0], "setpath")) {
-		setpath(argv[1]);
+		setpath(argv);
 		return 0;
 	}
 
@@ -165,7 +174,7 @@ int main() {
 	char *input;
 	char *argv[SZ_ARGV];
 
-	pathValue = getpath();
+	pathValue = getenv("PATH");
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
