@@ -73,7 +73,7 @@ void getpath(char **argv) {
 }
 
 void setpath(char **argv) {
-	if(argv[2] == NULL){
+	if(argv[2] == NULL)
 		if (argv[1] != NULL) {
 			setenv("PATH", argv[1], 1);
 		} else {
@@ -144,7 +144,7 @@ char *get_input() {
 		/*Exits on ctrl+D*/
 		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
 			quit(); /*Exit on null pointer, given by fgets()*/
-		}
+		
 	}
 	/* fgets as scanf() can't handle blank lines */
 	/* check if it was a blank line, i.e. just a '\n' input...*/
