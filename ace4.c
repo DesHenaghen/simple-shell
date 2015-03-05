@@ -20,7 +20,20 @@
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 #define SZ_ARGV 50 /* Size of the argv array */
 
+/*A structure for storing the command number and string*/
+typedef struct {
+  int cmd_no;
+  char input_line[MAXIN];
+  
+} history_line_t;
+
+
+/* An array for storing history*/ 
+static history_line_t saved_history [20]; 
+
 const char *pathValue;
+
+
 
 void quit() {
 	setenv("PATH", pathValue, 1);
@@ -55,37 +68,6 @@ void setpath(char* path) {
 	}
 }
 
-char *get_input() {
-	static char input[MAXIN]; /* declared as static so it's not on the stack */
-	char *cwd = getcwdir();
-	bool too_much_input = true;
-	int i;
-
-	do {
-		printf("[%s]%% ", cwd);
-
-		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
-			quit(); /*Exit on null pointer, given by fgets()*/
-	}
-	/* fgets as scanf() can't handle blank lines */
-	/* check if it was a blank line, i.e. just a '\n' input...*/
-	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
-
-	/* Clear the rest of the line if it was longer than the input array */
-	for (i = 0; i < MAXIN; i++) {
-		switch (input[i]) {
-		case '\n': too_much_input = false;
-		case '\0': break;
-		}
-	}
-
-	if (too_much_input) {
-		while (getchar() != '\n');
-	}
-
-	/* If we get to this point it there has to be input so just return it. */
-	return (input);
-}
 
 void tokenise(char *line, char **tokens) {
 	int p;
@@ -101,6 +83,104 @@ void tokenise(char *line, char **tokens) {
 	tokens[p] = '\0';
 }
 
+/* 
+This instruction is called when the first character of the input is a '!'
+meaning a command is invoked from history
+*/
+
+char *command_history(char *input, int count) {
+	int cmd;
+/* '-' means counting backwards from the last commands entered */ 
+	if ('-' == input[1]) { 
+/* input +2 makes it that a pointer to the 3rd character in the string is passed on 
+which is the equivalent of passing a string less the first two characters 
+strtoul is meant to convert string to unsigned long - library function 
+*/ 
+		cmd = strtoul((input+2), NULL, 10); 
+/* this is meant to do error checking, but we are not sure it actually works */ 
+		if(cmd == 0) {
+			printf("Invalid parameter");
+			return NULL;
+		}
+/*
+We are returning a command from history, which is passed onto get_input 
+and then returned again from there. 
+*/
+		return saved_history[(count-cmd)%20].input_line;
+		}
+	else {
+		cmd = strtoul((input+1), NULL, 10);  
+		return saved_history[cmd%20].input_line; 
+	}
+
+
+}
+
+/*
+this is a builtin command that just prints the user command history. Commands invoked 
+from history or the invocations !## are not saved. It is not printing the commands 
+in order of invocation atm i.e. cmd_no order in struct - to be fixed. 
+*/  
+void history(){  
+	int c; 
+			
+	for(c = 0; c<20; c++){
+
+		printf("%d  %s  ", saved_history[c].cmd_no, saved_history[c].input_line);
+		
+	}
+}
+
+
+char *get_input() {
+	
+	static int count; 
+	
+		
+	static char input[MAXIN]; /* declared as static so it's not on the stack */
+	char *cwd = getcwdir();
+	bool too_much_input = true;
+	int i;
+
+	do {
+		printf("[%s]%% ", cwd);
+		/*Exits on ctrl+D*/
+		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
+			quit(); /*Exit on null pointer, given by fgets()*/
+	}
+	/* fgets as scanf() can't handle blank lines */
+	/* check if it was a blank line, i.e. just a '\n' input...*/
+	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
+
+	/* Clear the rest of the terminal if input was longer than the input array */
+	for (i = 0; i < MAXIN; i++) {
+		switch (input[i]) {
+		case '\n': too_much_input = false;
+		case '\0': break;
+		}
+	}
+
+	if (too_much_input) {
+		while (getchar() != '\n');
+	}
+	
+	/*Command history*/
+	/* if (!strcspn(input, "!"));  ASK if we need to use it  - he recommends it, but we managed without it I think.. */
+	
+	if ('!' == input[0]) {	
+		return command_history(input, count+1); 
+	}
+
+ 	count++; 
+
+	saved_history[count%20].cmd_no = count;
+	strcpy(saved_history[count%20].input_line, input);
+	
+
+	/* If we get to this point it there has to be input so just return it. */
+	return (input);
+}
+
 int internal_command(char **argv) {
 	/* Internal commands */
 	/* TODO: internal commands as another function */
@@ -113,6 +193,9 @@ int internal_command(char **argv) {
 	} else if (EQ(argv[0], "setpath")) {
 		setpath(argv[1]);
 		return 0;
+	} else if (EQ(argv[0], "history")) {
+		history(); 
+		return 0; 
 	}
 
 	/* Return negative number if command not found */
@@ -171,6 +254,7 @@ int main() {
 		input = get_input();
 		tokenise(input, argv);
 		Execute(argv);
+		
 	}
 	return 0;
 }
