@@ -73,12 +73,13 @@ void getpath(char **argv) {
 }
 
 void setpath(char **argv) {
-	if(argv[2] == NULL)
+	if(argv[2] == NULL) {
 		if (argv[1] != NULL) {
 			setenv("PATH", argv[1], 1);
 		} else {
 			printf("Invalid path value: null\n");
 		}
+	}
 }
 
 /* 
@@ -189,7 +190,7 @@ void tokenise(char *line, char **tokens) {
 		tokens[p++] = token;
 		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
-	tokens[p] = '\0';
+	tokens[p] = 0;
 }
 
 int internal_command(char **argv) {
@@ -248,7 +249,7 @@ void external_command(char **argv) {
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
 	/* Let's make sure there's actually something in the array! */
-	if (LEN(argv) == 0) {
+	if (!**argv) {
 		fprintf(stderr,"No arguments given to Execute()");
 		return;
 	}
