@@ -6,3 +6,5 @@
 *.project
 shell
 ace4
+.alias
+.hist_list
