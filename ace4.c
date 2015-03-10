@@ -19,6 +19,7 @@
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 #define SZ_ARGV 50 /* Size of the argv array */
+#define HISTFILE ".hist_list"
 
 /*A structure for storing the command number and string*/
 typedef struct {
@@ -33,6 +34,24 @@ static history_line_t saved_history [20];
 
 const char *pathValue;
 
+
+void save_history() { 
+
+	FILE *out;
+	int i; 
+
+	out = fopen(HISTFILE, "w"); 
+	
+	for (i = 0; i < LEN(saved_history); i++) { 
+	
+	if(NULL == saved_history[i].input_line) 
+		break; 
+	fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line); 
+		
+	}
+
+	fclose(out); 
+}
 
 
 void quit() {
