@@ -56,12 +56,12 @@ char *getcwdir() {
 	return ptr;
 }
 
-void cd(char **argv) {
-	if (argv[1]) {
-		chdir(argv[1]);
-	} else {
-		chdir(getenv("HOME"));
-	}
+void cd(char *directory) {
+  if (!directory)
+    directory = getenv("HOME");
+
+  if (chdir(directory))
+    perror(directory);
 }
 
 /* Return the PATH environment variable */
@@ -200,7 +200,7 @@ int internal_command(char **argv) {
 	if (EQ(argv[0], "exit")) {
 		quit();
 	} else if (EQ(argv[0], "cd")) {
-		cd(argv);
+		cd(argv[1]);
 		return 0;
 	} else if (EQ(argv[0], "getpath")) {
 		getpath(argv);
@@ -264,7 +264,7 @@ int main() {
 	char *argv[SZ_ARGV];
 
 	pathValue = getenv("PATH");
-	chdir(getenv("HOME")); /*Changes current working directory to HOME */
+	cd(NULL); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
 		tokenise(input, argv);
