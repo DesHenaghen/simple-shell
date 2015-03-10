@@ -41,6 +41,17 @@ void quit() {
 	exit(0);
 }
 
+/* Get the current working directory.
+ *
+ * Returns: pointer to null-terminated string containing the current
+ * working directory.
+ *
+ * IMPORTANT: This pointer must be freed after use!
+ *     e.g.
+ *         char *cwd = getcwdir();
+ *         printf("%s\n",cwd);
+ *         free(cwd);
+ */
 char *getcwdir() {
 	long size;
 	char *buf;
@@ -142,7 +153,6 @@ char *get_input() {
 
 	do {
 		printf("[%s]%% ", cwd);
-		free(cwd);
 		/*Exits on ctrl+D*/
 		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
 			quit(); /*Exit on null pointer, given by fgets()*/
@@ -151,6 +161,8 @@ char *get_input() {
 	/* fgets as scanf() can't handle blank lines */
 	/* check if it was a blank line, i.e. just a '\n' input...*/
 	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
+
+	free(cwd);
 
 	/* Clear the rest of the line if it was longer than the input array */
 	for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
