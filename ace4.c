@@ -83,34 +83,35 @@ void setpath(char **argv) {
 }
 
 /* 
-This instruction is called when the first character of the input is a '!'
+This instruction is calNULLled when the first character of the input is a '!'
 meaning a command is invoked from history
 */
 
 char *command_history(char *input, int count) {
 	int cmd;
+	char *temp;
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
-/* input +2 makes it that a pointer to the 3rd character in the string is passed on 
-which is the equivalent of passing a string less the first two characters 
-strtoul is meant to convert string to unsigned long - library function 
-*/ 
-		cmd = strtoul((input+2), NULL, 10); 
-/* this is meant to do error checking, but we are not sure it actually works */ 
+
+		cmd = strtoul((input+2), NULL, 10);
 		if(cmd == 0) {
-			printf("Invalid parameter");
+			printf("Invalid parameter\n");
 			return NULL;
 		}
-/*
-We are returning a command from history, which is passed onto get_input 
-and then returned again from there. 
-*/
-		return saved_history[(count-cmd)%20].input_line;
-		}
-	else {
+		cmd = count - cmd;
+	}else {
 		cmd = strtoul((input+1), NULL, 10);  
-		return saved_history[cmd%20].input_line; 
+		if(cmd == 0) {
+			printf("Invalid parameter\n");
+			return NULL;
+		} 
 	}
+
+	if (cmd < 0 || cmd >= count || cmd < count - 20){
+			printf("History item does not exist\n");
+			return NULL;
+	}
+	return saved_history[cmd%20].input_line;
 
 
 }
@@ -267,9 +268,10 @@ int main() {
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
-		tokenise(input, argv);
-		Execute(argv);
-		
+		if (input != NULL){
+			tokenise(input, argv);
+			Execute(argv);
+		}
 	}
 	return 0;
 }
