@@ -36,14 +36,20 @@ const char *pathValue;
 
 
 void save_history() { 
-
+  char *home = getenv("HOME"),
+    *filename = calloc(strlen(home) + strlen(HISTFILE), sizeof(char));
   FILE *out;
   int i; 
 
-  if ((out = fopen(HISTFILE, "w")) == NULL) {
-    perror(HISTFILE);
+  sprintf(filename, "%s/%s", home, HISTFILE);
+
+  if ((out = fopen(filename, "w")) == NULL)
+    perror(filename);
+  
+  free(filename);
+
+  if (out == NULL)
     return;
-  }
 
   for (i = 0; saved_history[i].cmd_no; i++) {
     fprintf(out,"%d %s", saved_history[i].cmd_no, saved_history[i].input_line);
