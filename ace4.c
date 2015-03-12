@@ -30,33 +30,33 @@ typedef struct {
 
 
 /* An array for storing history*/ 
-static history_line_t saved_history [20]; 
+static history_line_t saved_history [20];
 
 const char *pathValue;
 
 
 void save_history() { 
 
-	FILE *out;
-	int i; 
+  FILE *out;
+  int i; 
 
-	out = fopen(HISTFILE, "w"); 
-	
-	for (i = 0; i < LEN(saved_history); i++) { 
-	
-		if(NULL == saved_history[i].input_line) 
-			break; 
-		fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line); 
-			
-	}
+  if ((out = fopen(HISTFILE, "w")) == NULL) {
+    perror(HISTFILE);
+    return;
+  }
 
-	fclose(out); 
+  for (i = 0; saved_history[i].cmd_no; i++) {
+    fprintf(out,"%d %s", saved_history[i].cmd_no, saved_history[i].input_line);
+  }
+
+  fclose(out); 
 }
 
 
 void quit() {
 	setenv("PATH", pathValue, 1);
 	printf("%s\n",getenv("PATH"));
+	save_history();
 	exit(0);
 }
 
@@ -73,8 +73,8 @@ void quit() {
  */
 char *getcwdir() {
 	long size;
-	char *buf;
-	char *ptr;
+	char *buf = 0,
+	  *ptr = 0;
 
 	size = pathconf(".", _PC_PATH_MAX);
 
@@ -119,7 +119,6 @@ meaning a command is invoked from history
 
 char *command_history(char *input, int count) {
 	int cmd;
-	char *temp;
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
 		cmd = strtoul((input+2), NULL, 10);
