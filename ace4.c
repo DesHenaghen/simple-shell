@@ -44,10 +44,10 @@ void save_history() {
 	
 	for (i = 0; i < LEN(saved_history); i++) { 
 	
-	if(NULL == saved_history[i].input_line) 
-		break; 
-	fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line); 
-		
+		if(NULL == saved_history[i].input_line) 
+			break; 
+		fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line); 
+			
 	}
 
 	fclose(out); 
@@ -122,26 +122,16 @@ char *command_history(char *input, int count) {
 	char *temp;
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
-
 		cmd = strtoul((input+2), NULL, 10);
-		if(cmd == 0) {
-			printf("Invalid parameter\n");
-			return NULL;
-		}
 		cmd = count - cmd;
-	}else {
+	}else 
 		cmd = strtoul((input+1), NULL, 10);  
-		if(cmd == 0) {
-			printf("Invalid parameter\n");
-			return NULL;
-		} 
-	}
 
-	if (cmd < 0 || cmd >= count || cmd < count - 20){
-			printf("History item does not exist\n");
+	if (cmd <= 0 || cmd >= count || cmd < count - 20){
+			printf("Invalid Parameter\n");
 			return NULL;
 	}
-	return saved_history[cmd%20].input_line;
+	return saved_history[cmd-1%20].input_line;
 
 
 }
@@ -204,8 +194,8 @@ char *get_input() {
 
  	count++; 
 
-	saved_history[count%20].cmd_no = count;
-	strcpy(saved_history[count%20].input_line, input);
+	saved_history[count-1%20].cmd_no = count;
+	strcpy(saved_history[count-1%20].input_line, input);
 	
 
 	/* If we get to this point it there has to be input so just return it. */
