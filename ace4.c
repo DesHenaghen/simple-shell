@@ -28,35 +28,40 @@ typedef struct {
   
 } history_line_t;
 
+typedef struct {
+  char* name;
+  char* command[10];
+} alias_t;
 
 /* An array for storing history*/ 
-static history_line_t saved_history [20];
+static history_line_t saved_history [20]; 
+static alias_t alias[10];
 
 const char *pathValue;
 
 
 void save_history() { 
 
-  FILE *out;
-  int i; 
+	FILE *out;
+	int i; 
 
-  if ((out = fopen(HISTFILE, "w")) == NULL) {
-    perror(HISTFILE);
-    return;
-  }
+	out = fopen(HISTFILE, "w"); 
+	
+	for (i = 0; i < LEN(saved_history); i++) { 
+	
+	if(NULL == saved_history[i].input_line) 
+		break; 
+	fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line); 
+		
+	}
 
-  for (i = 0; saved_history[i].cmd_no; i++) {
-    fprintf(out,"%d %s", saved_history[i].cmd_no, saved_history[i].input_line);
-  }
-
-  fclose(out); 
+	fclose(out); 
 }
 
 
 void quit() {
 	setenv("PATH", pathValue, 1);
 	printf("%s\n",getenv("PATH"));
-	save_history();
 	exit(0);
 }
 
@@ -73,8 +78,8 @@ void quit() {
  */
 char *getcwdir() {
 	long size;
-	char *buf = 0,
-	  *ptr = 0;
+	char *buf;
+	char *ptr;
 
 	size = pathconf(".", _PC_PATH_MAX);
 
@@ -86,12 +91,12 @@ char *getcwdir() {
 	return ptr;
 }
 
-void cd(char *directory) {
-  if (!directory)
-    directory = getenv("HOME");
-
-  if (chdir(directory))
-    perror(directory);
+void cd(char **argv) {
+	if (argv[1]) {
+		chdir(argv[1]);
+	} else {
+		chdir(getenv("HOME"));
+	}
 }
 
 /* Return the PATH environment variable */
@@ -112,6 +117,30 @@ void setpath(char **argv) {
 	}
 }
 
+void setAlias(char **argv) 
+{
+	static int count;
+	alias[count].name = argv[1];
+	alias[count].command = argv[2];
+	count++;			
+}
+
+int checkAlias(char *name) {
+
+	int i;
+
+	for(i = 0; i < 10; i++) {
+		if(name == NULL) 
+		{
+			return 0;
+		}
+		else if(strcmp(name,alias[i].name))
+		{
+			return i+1;
+		} 
+	}
+}
+
 /* 
 This instruction is calNULLled when the first character of the input is a '!'
 meaning a command is invoked from history
@@ -119,18 +148,29 @@ meaning a command is invoked from history
 
 char *command_history(char *input, int count) {
 	int cmd;
+	char *temp;
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
-		cmd = strtoul((input+2), NULL, 10);
-		cmd = count - cmd;
-	}else 
-		cmd = strtoul((input+1), NULL, 10);  
 
-	if (cmd <= 0 || cmd >= count || cmd < count - 20){
-			printf("Invalid Parameter\n");
+		cmd = strtoul((input+2), NULL, 10);
+		if(cmd == 0) {
+			printf("Invalid parameter\n");
+			return NULL;
+		}
+		cmd = count - cmd;
+	}else {
+		cmd = strtoul((input+1), NULL, 10);  
+		if(cmd == 0) {
+			printf("Invalid parameter\n");
+			return NULL;
+		} 
+	}
+
+	if (cmd < 0 || cmd >= count || cmd < count - 20){
+			printf("History item does not exist\n");
 			return NULL;
 	}
-	return saved_history[cmd-1%20].input_line;
+	return saved_history[cmd%20].input_line;
 
 
 }
@@ -193,8 +233,8 @@ char *get_input() {
 
  	count++; 
 
-	saved_history[count-1%20].cmd_no = count;
-	strcpy(saved_history[count-1%20].input_line, input);
+	saved_history[count%20].cmd_no = count;
+	strcpy(saved_history[count%20].input_line, input);
 	
 
 	/* If we get to this point it there has to be input so just return it. */
@@ -222,7 +262,7 @@ int internal_command(char **argv) {
 	if (EQ(argv[0], "exit")) {
 		quit();
 	} else if (EQ(argv[0], "cd")) {
-		cd(argv[1]);
+		cd(argv);
 		return 0;
 	} else if (EQ(argv[0], "getpath")) {
 		getpath(argv);
@@ -232,6 +272,9 @@ int internal_command(char **argv) {
 		return 0;
 	} else if (EQ(argv[0], "history")) {
 		history(); 
+		return 0; 
+	} else if (EQ(argv[0], "alias")) {
+		setAlias(argv); 
 		return 0; 
 	}
 
@@ -271,9 +314,16 @@ void external_command(char **argv) {
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
 	/* Let's make sure there's actually something in the array! */
+	int i;
 	if (!**argv) {
 		fprintf(stderr,"No arguments given to Execute()");
 		return;
+	}
+	
+	if(i = checkAlias(argv[0]))
+	{
+		Execute(alias[i-1].command);
+		return;	
 	}
 
 	if (internal_command(argv) < 0) {
@@ -286,7 +336,7 @@ int main() {
 	char *argv[SZ_ARGV];
 
 	pathValue = getenv("PATH");
-	cd(NULL); /*Changes current working directory to HOME */
+	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
 		if (input != NULL){
