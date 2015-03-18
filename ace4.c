@@ -85,8 +85,8 @@ printf("test\n");
 
 void quit() {
 	setenv("PATH", pathValue, 1);
-	save_history();
 	printf("%s\n",getenv("PATH"));
+	save_history();
 	exit(0);
 }
 
@@ -116,12 +116,12 @@ char *getcwdir() {
 	return ptr;
 }
 
-void cd(char **argv) {
-	if (argv[1]) {
-		chdir(argv[1]);
-	} else {
-		chdir(getenv("HOME"));
-	}
+void cd(char *directory) {
+  if (!directory)
+    directory = getenv("HOME");
+
+  if (chdir(directory))
+    perror(directory);
 }
 
 /* Return the PATH environment variable */
@@ -149,7 +149,7 @@ meaning a command is invoked from history
 
 char *command_history(char *input, int count) {
 	int cmd;
-	char *temp;
+
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
 		cmd = strtoul((input+2), NULL, 10);
@@ -256,7 +256,7 @@ int internal_command(char **argv) {
 	if (EQ(argv[0], "exit")) {
 		quit();
 	} else if (EQ(argv[0], "cd")) {
-		cd(argv);
+		cd(argv[1]);
 		return 0;
 	} else if (EQ(argv[0], "getpath")) {
 		getpath(argv);
@@ -321,7 +321,7 @@ int main() {
 	printf("test\n");
 	load_history();
 	pathValue = getenv("PATH");
-	chdir(getenv("HOME")); /*Changes current working directory to HOME */
+	cd(NULL); /*Changes current working directory to HOME */
 	while (1) {
 		input = get_input();
 		if (input != NULL){
