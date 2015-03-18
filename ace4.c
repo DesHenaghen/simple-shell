@@ -30,18 +30,27 @@ typedef struct {
 
 
 /* An array for storing history*/ 
-static history_line_t saved_history [20]; 
+static history_line_t saved_history [20];
 
 const char *pathValue;
 
 
 void save_history() { 
+  char *home = getenv("HOME"),
+    *filename = calloc(strlen(home) + strlen(HISTFILE), sizeof(char));
+  FILE *out;
+  int i; 
 
-	FILE *out;
-	int i; 
+  sprintf(filename, "%s/%s", home, HISTFILE);
 
-	out = fopen(HISTFILE, "w"); 
-	
+  if ((out = fopen(filename, "w")) == NULL)
+    perror(filename);
+  
+  free(filename);
+
+  if (out == NULL)
+    return;
+
 	for (i = 0; i < LEN(saved_history); i++) { 
 
 		if(saved_history[i].cmd_no == 0)
@@ -52,7 +61,7 @@ void save_history() {
 			
 	}
 
-	fclose(out); 
+  fclose(out); 
 }
 
 void load_history(){
@@ -82,7 +91,6 @@ printf("test\n");
 	fclose(in);
 }
 
-
 void quit() {
 	setenv("PATH", pathValue, 1);
 	printf("%s\n",getenv("PATH"));
@@ -103,8 +111,8 @@ void quit() {
  */
 char *getcwdir() {
 	long size;
-	char *buf;
-	char *ptr;
+	char *buf = 0,
+	  *ptr = 0;
 
 	size = pathconf(".", _PC_PATH_MAX);
 
