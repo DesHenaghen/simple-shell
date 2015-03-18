@@ -10,7 +10,7 @@
 #include <stdbool.h>
 
 /* The name of our shell! */
-#define SHELLNAME "dora"
+#define SHELLNAME "HermitTheKermit"
 /* The number of elements in an array */
 #define LEN(array) sizeof(array)/sizeof(array[0])
 /* Are two strings equal? */
@@ -43,19 +43,49 @@ void save_history() {
 	out = fopen(HISTFILE, "w"); 
 	
 	for (i = 0; i < LEN(saved_history); i++) { 
+
+		if(saved_history[i].cmd_no == 0)
+			break;
 	
-		if(NULL == saved_history[i].input_line) 
-			break; 
-		fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line); 
+		fprintf(out,"%d\n", saved_history[i].cmd_no);
+		fprintf(out,"%s\n", saved_history[i].input_line);
 			
 	}
 
 	fclose(out); 
 }
 
+void load_history(){
+	int i;
+	int count = 0;
+	char input[MAXIN];
+
+printf("test\n");
+	FILE* in = fopen(HISTFILE, "r");
+
+	if (in == NULL) {
+  		printf( "Can't open input file in.list!\n");
+  		return;
+	}	
+
+	do {
+		fgets(input, MAXIN, in);
+		printf("test");
+		printf("%s", input);
+		saved_history[count].cmd_no = atoi(input);
+		fgets(saved_history[count].input_line, MAXIN, in );
+		//strcpy(saved_history[count].input_line, input);
+		count++;
+	}
+	while ('\n' == input[0]);
+
+	fclose(in);
+}
+
 
 void quit() {
 	setenv("PATH", pathValue, 1);
+	save_history();
 	printf("%s\n",getenv("PATH"));
 	exit(0);
 }
@@ -146,7 +176,10 @@ void history(){
 			
 	for(c = 0; c<20; c++){
 
-		printf("%d  %s  ", saved_history[c].cmd_no, saved_history[c].input_line);
+		if(saved_history[c].cmd_no == 0)
+			break;
+
+		printf(" %d  %s\n", saved_history[c].cmd_no, saved_history[c].input_line);
 		
 	}
 }
@@ -285,7 +318,8 @@ void Execute(char *argv[]) {
 int main() {
 	char *input;
 	char *argv[SZ_ARGV];
-
+	printf("test\n");
+	load_history();
 	pathValue = getenv("PATH");
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	while (1) {
