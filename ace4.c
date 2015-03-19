@@ -29,8 +29,8 @@ typedef struct {
 } history_line_t;
 
 typedef struct {
-  char* name;
-  char* command[10];
+  char *name;
+  char *command[10];
 } alias_t;
 
 /* An array for storing history*/ 
@@ -121,7 +121,7 @@ void setAlias(char **argv)
 {
 	static int count;
 	alias[count].name = argv[1];
-	alias[count].command = argv[2];
+	*alias[count].command = argv[2];
 	count++;			
 }
 
@@ -130,14 +130,25 @@ int checkAlias(char *name) {
 	int i;
 
 	for(i = 0; i < 10; i++) {
-		if(name == NULL) 
-		{
+		if(name == NULL || alias[i].name == NULL) {
 			return 0;
 		}
-		else if(strcmp(name,alias[i].name))
-		{
+		else if(strcmp(name,alias[i].name)) {
 			return i+1;
 		} 
+	}
+}
+
+void printAlias()
+{
+	int i;
+	
+	for(i = 0; i <10; i++)
+	{
+		if(alias[i].name != NULL)
+		{
+			printf("%s", alias[i].name);
+		}
 	}
 }
 
@@ -276,6 +287,9 @@ int internal_command(char **argv) {
 	} else if (EQ(argv[0], "alias")) {
 		setAlias(argv); 
 		return 0; 
+	} else if (EQ(argv[0], "printa")) {
+		printAlias(); 
+		return 0; 
 	}
 
 	/* Return negative number if command not found */
@@ -320,12 +334,14 @@ void Execute(char *argv[]) {
 		return;
 	}
 	
-	if(i = checkAlias(argv[0]))
+	if(checkAlias(argv[0]))
 	{
-		Execute(alias[i-1].command);
+		printf("hello\n");
+		Execute(alias[i].command);
+		
 		return;	
 	}
-
+	
 	if (internal_command(argv) < 0) {
 		external_command(argv);
 	}
@@ -346,4 +362,3 @@ int main() {
 	}
 	return 0;
 }
-
