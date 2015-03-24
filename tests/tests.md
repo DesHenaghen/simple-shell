@@ -100,3 +100,65 @@ Stage 6
 Persistent history
 
 ### Tests
+
+#### Save History
+
+0. Previous stages still work
+1. .hist_list created in user's home directory
+2. .hist_list contains the expected contents
+
+### Load History
+
+3. history is loaded when shell is started (use history command)
+4. Doesn't crash if file can't be found or file can't be opened
+5. Doesn't crash is file is corrupt i.e. doesn't contain the expected contents
+
+Stage 7
+-------
+
+### Aim
+
+Setting up aliases, removing aliases, invoking aliases, and printing all
+aliases.
+
+### Tests
+
+0. Previous stages still work,
+1. Accepts at least 10 aliases,
+2. Commands can be unaliased
+3. Print 'no such alias' when user attempts to unalias non-existent alias
+4. Aliases can be invoked i.e. they are replaced with the expected command
+5. If no alias is found the original command line is parsed
+6. `alias` command prints aliases. If there are no aliases, as message is
+printed to tell the user this
+7. An aliased command works with and without parameters and for both internal
+and external commands
+8. Garbage can be aliased. If the user aliases garbage, the shell will still
+try to execute the garbage
+9. Print aliases after removal check for gaps in the data structure.
+10. "Correctly" handle the case when the maximum number of aliases is reached.
+11. Shell doesn't go tits up when incorrect parameters are provided.
+
+Stage 8
+-------
+
+**Branch before starting this stage:**
+
+		git checkout -b enhanced_aliases
+
+There is, allegedly, a high risk that this will break the previous stages.
+
+### Aim
+
+Enhanced aliases
+
+### Tests
+
+0. Previous stages still work
+1. Chains of aliases without cycles and without parameters work
+2. Chains of aliases without cycles but *with* parameters work
+3. Chains that mix aliases and history invocation without cycles and without
+parameters work
+4. Chains that mix aliases and history invocation without cycles but *with*
+parameters work
+5. Cycles are prevented in steps 1 - 4.
