@@ -19,13 +19,17 @@
 #define MAXIN 512 /* MAXIN is the maximum number of input characters */
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 #define SZ_ARGV 50 /* Size of the argv array */
-#define HISTFILE ".hist_list"
+#define HISTFILE "hist_list.txt"
+
+/*Keeps count of the command number being executed*/ 
+static int count;
 
 /*A structure for storing the command number and string*/
 typedef struct {
   int cmd_no;
   char input_line[MAXIN];
   
+
 } history_line_t;
 
 
@@ -40,7 +44,7 @@ void save_history() {
     *filename = calloc(strlen(home) + strlen(HISTFILE), sizeof(char));
   FILE *out;
   int i; 
-
+ 
   sprintf(filename, "%s/%s", home, HISTFILE);
 
   if ((out = fopen(filename, "w")) == NULL)
@@ -51,43 +55,45 @@ void save_history() {
   if (out == NULL)
     return;
 
-	for (i = 0; i < LEN(saved_history); i++) { 
+	for (i = 1; i <= LEN(saved_history); i++) { 
 
-		if(saved_history[i].cmd_no == 0)
+		if(saved_history[i%20].cmd_no == 0)
 			break;
 	
 		fprintf(out,"%d\n", saved_history[i].cmd_no);
 		fprintf(out,"%s\n", saved_history[i].input_line);
 			
 	}
+	
 
   fclose(out); 
 }
 
 void load_history(){
+
 	int i;
-	int count = 0;
+	int maxCount=0;
 	char input[MAXIN];
 
-printf("test\n");
+	printf("test\n");
 	FILE* in = fopen(HISTFILE, "r");
 
 	if (in == NULL) {
   		printf( "Can't open input file in.list!\n");
   		return;
 	}	
-
-	do {
+	while (!feof(in)) {		
 		fgets(input, MAXIN, in);
-		printf("test");
-		printf("%s", input);
-		saved_history[count].cmd_no = atoi(input);
-		fgets(saved_history[count].input_line, MAXIN, in );
-		//strcpy(saved_history[count].input_line, input);
-		count++;
+		strtok(input, "\n");
+		i = atoi(input);
+		maxCount = (maxCount> i)? maxCount : i;
+		saved_history[i%20].cmd_no = i;
+		fgets(saved_history[i%20].input_line, MAXIN, in );
+		strtok(saved_history[i%20].input_line, "\n");
+				
 	}
-	while ('\n' == input[0]);
-
+	count = maxCount; // TO CHANGE - needs to find the max number of instruction
+	
 	fclose(in);
 }
 
@@ -169,9 +175,8 @@ char *command_history(char *input, int count) {
 			printf("Invalid Parameter\n");
 			return NULL;
 	}
-	return saved_history[cmd-1%20].input_line;
-
-
+	
+	return saved_history[cmd%20].input_line;
 }
 
 /*
@@ -181,20 +186,20 @@ in order of invocation atm i.e. cmd_no order in struct - to be fixed.
 */  
 void history(){  
 	int c; 
-			
-	for(c = 0; c<20; c++){
+	/* history is saved in array starting at 1 */
+	for(c = 1; c<21; c++){
 
-		if(saved_history[c].cmd_no == 0)
+		if(saved_history[c%20].cmd_no == 0)
 			break;
 
-		printf(" %d  %s\n", saved_history[c].cmd_no, saved_history[c].input_line);
+		printf(" %d  %s\n", saved_history[c%20].cmd_no, saved_history[c%20].input_line);
 		
 	}
 }
 
 char *get_input() {
 	
-	static int count; 
+	 
 	
 		
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
@@ -229,15 +234,16 @@ char *get_input() {
 	/*Command history*/
 	/* if (!strcspn(input, "!"));  ASK if we need to use it  - he recommends it, but we managed without it I think.. */
 	
-	if ('!' == input[0]) {	
-		return command_history(input, count+1); 
+	if (!strcspn(input, "!")) {	
+		return command_history(input, count+1); //count +1
 	}
 
- 	count++; 
-
-	saved_history[count-1%20].cmd_no = count;
-	strcpy(saved_history[count-1%20].input_line, input);
-	
+	count++;
+	/*after the count++, the history starts being saved at index 1 */
+	saved_history[count%20].cmd_no = count;
+	input[strcspn(input, "\n")] = 0;
+	strcpy(saved_history[count%20].input_line, input);
+	 
 
 	/* If we get to this point it there has to be input so just return it. */
 	return (input);
@@ -326,10 +332,10 @@ void Execute(char *argv[]) {
 int main() {
 	char *input;
 	char *argv[SZ_ARGV];
-	printf("test\n");
-	load_history();
+	printf("test\n");	
 	pathValue = getenv("PATH");
 	cd(NULL); /*Changes current working directory to HOME */
+	load_history();
 	while (1) {
 		input = get_input();
 		if (input != NULL){
