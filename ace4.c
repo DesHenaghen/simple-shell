@@ -130,20 +130,29 @@ char *getcwdir() {
 	return ptr;
 }
 
-void cd(char *directory) {
-  if (!directory)
-    directory = getenv("HOME");
+void cd(char **argv) {
+	if(argv[2] == NULL){
+	  	if (!argv[1]){
+	    		chdir(getenv("HOME"));
+		}else{
+			if(chdir(argv[1]))
+				perror(argv[1]);
+		}
+	}else{
+		printf("Invalid parameters\n");
+	}
 
-  if (chdir(directory))
-    perror(directory);
+  /*if (chdir(directory))
+    perror(directory);*/
 }
 
 /* Return the PATH environment variable */
 void getpath(char **argv) {
-	if(argv[1] == NULL)
+	if(argv[1] == NULL){
 		printf("%s\n", getenv("PATH"));
-	else
-		printf("Too many parameters\n");
+	}else{
+		printf("Invalid parameters\n");
+	}
 }
 
 void setpath(char **argv) {
@@ -153,11 +162,13 @@ void setpath(char **argv) {
 		} else {
 			printf("Invalid path value: null\n");
 		}
+	}else{
+		printf("Invalid parameters\n");
 	}
 }
 
 /* 
-This instruction is calNULLled when the first character of the input is a '!'
+This instruction is called when the first character of the input is a '!'
 meaning a command is invoked from history
 */
 
@@ -254,6 +265,7 @@ void tokenise(char *line, char **tokens) {
 	char *token;
 
 	p = 0;
+	tokens[2] = NULL;
 	token = strtok(line, DELIM); /* initial strtok call */
 	/* While there are more tokens and our array isn't full */
 	while (token && (p < SZ_ARGV - 1)) {
@@ -270,7 +282,7 @@ int internal_command(char **argv) {
 	if (EQ(argv[0], "exit")) {
 		quit();
 	} else if (EQ(argv[0], "cd")) {
-		cd(argv[1]);
+		cd(argv);
 		return 0;
 	} else if (EQ(argv[0], "getpath")) {
 		getpath(argv);
@@ -334,7 +346,7 @@ int main() {
 	char *argv[SZ_ARGV];
 	printf("test\n");	
 	pathValue = getenv("PATH");
-	cd(NULL); /*Changes current working directory to HOME */
+	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
 	while (1) {
 		input = get_input();
