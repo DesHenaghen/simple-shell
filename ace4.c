@@ -10,7 +10,7 @@
 #include <stdbool.h>
 
 /* The name of our shell! */
-#define SHELLNAME "dora"
+#define SHELLNAME "HermitTheKermit"
 /* The number of elements in an array */
 #define LEN(array) sizeof(array)/sizeof(array[0])
 /* Are two strings equal? */
@@ -21,11 +21,13 @@
 #define SZ_ARGV 50 /* Size of the argv array */
 #define HISTFILE ".hist_list"
 
+/*Keeps count of the command number being executed*/ 
+static int count;
+
 /*A structure for storing the command number and string*/
 typedef struct {
-    int cmd_no;
-    char input_line[MAXIN];
-    
+  int cmd_no;
+  char input_line[MAXIN];
 } history_line_t;
 
 typedef struct {
@@ -40,28 +42,68 @@ static alias_t alias[10];
 const char *pathValue;
 
 void save_history() {
-    
-    FILE *out;
-    int i;
-    
-    out = fopen(HISTFILE, "w");
-    
-    for (i = 0; i < LEN(saved_history); i++) {
-        
-        if(NULL == saved_history[i].input_line)
-            break;
-        fprintf(out,"%d %s\n", saved_history[i].cmd_no, saved_history[i].input_line);
-        
-    }
-    
-    fclose(out);
+  char *home = getenv("HOME"),
+    *filename = calloc(strlen(home) + strlen(HISTFILE), sizeof(char));
+  FILE *out;
+  int i; 
+ 
+  sprintf(filename, "%s/%s", home, HISTFILE);
+
+  if ((out = fopen(filename, "w")) == NULL)
+    perror(filename);
+  
+  free(filename);
+
+  if (out == NULL)
+    return;
+
+	for (i = 1; i <= LEN(saved_history); i++) { 
+
+		if(saved_history[i%20].cmd_no == 0)
+			break;
+	
+		fprintf(out,"%d\n", saved_history[i].cmd_no);
+		fprintf(out,"%s\n", saved_history[i].input_line);
+			
+	}
+	
+
+  fclose(out); 
 }
 
+void load_history(){
+
+	int i;
+	int maxCount=0;
+	char input[MAXIN];
+
+	printf("test\n");
+	FILE* in = fopen(HISTFILE, "r");
+
+	if (in == NULL) {
+  		printf( "Can't open input file in.list!\n");
+  		return;
+	}	
+	while (!feof(in)) {		
+		fgets(input, MAXIN, in);
+		strtok(input, "\n");
+		i = atoi(input);
+		maxCount = (maxCount> i)? maxCount : i;
+		saved_history[i%20].cmd_no = i;
+		fgets(saved_history[i%20].input_line, MAXIN, in );
+		strtok(saved_history[i%20].input_line, "\n");
+				
+	}
+	count = maxCount; // TO CHANGE - needs to find the max number of instruction
+	
+	fclose(in);
+}
 
 void quit() {
-    setenv("PATH", pathValue, 1);
-    printf("%s\n",getenv("PATH"));
-    exit(0);
+	setenv("PATH", pathValue, 1);
+	printf("%s\n",getenv("PATH"));
+	save_history();
+	exit(0);
 }
 
 /* Get the current working directory.
@@ -76,45 +118,57 @@ void quit() {
  *         free(cwd);
  */
 char *getcwdir() {
-    long size;
-    char *buf;
-    char *ptr;
-    
-    size = pathconf(".", _PC_PATH_MAX);
-    
-    /* Potential problem: The allocated memory is never freed. Is
-     * that an issue? (resource leak?) */
-    if ((buf = (char *) malloc((size_t) size)) != NULL)
-        ptr = getcwd(buf, (size_t) size);
-    
-    return ptr;
+	long size;
+	char *buf = 0,
+	  *ptr = 0;
+
+	size = pathconf(".", _PC_PATH_MAX);
+
+	/* Potential problem: The allocated memory is never freed. Is
+	 * that an issue? (resource leak?) */
+	if ((buf = (char *) malloc((size_t) size)) != NULL)
+		ptr = getcwd(buf, (size_t) size);
+
+	return ptr;
 }
 
 void cd(char **argv) {
-    if (argv[1]) {
-        chdir(argv[1]);
-    } else {
-        chdir(getenv("HOME"));
-    }
+	if(argv[2] == NULL){
+	  	if (!argv[1]){
+	    		chdir(getenv("HOME"));
+		}else{
+			if(chdir(argv[1]))
+				perror(argv[1]);
+		}
+	}else{
+		printf("Invalid parameters\n");
+	}
+
+  /*if (chdir(directory))
+    perror(directory);*/
 }
 
 /* Return the PATH environment variable */
 void getpath(char **argv) {
-    if(argv[1] == NULL)
-        printf("%s\n", getenv("PATH"));
-    else
-        printf("Too many parameters\n");
+	if(argv[1] == NULL){
+		printf("%s\n", getenv("PATH"));
+	}else{
+		printf("Invalid parameters\n");
+	}
 }
 
 void setpath(char **argv) {
-    if(argv[2] == NULL) {
-        if (argv[1] != NULL) {
-            setenv("PATH", argv[1], 1);
-        } else {
-            printf("Invalid path value: null\n");
-        }
-    }
+	if(argv[2] == NULL) {
+		if (argv[1] != NULL) {
+			setenv("PATH", argv[1], 1);
+		} else {
+			printf("Invalid path value: null\n");
+		}
+	}else{
+		printf("Invalid parameters\n");
+	}
 }
+
 void init_alias() {
     int i;
     for (i=0; i<10; i++)
@@ -170,115 +224,111 @@ void printAlias()
 }
 
 /*
- This instruction is calNULLled when the first character of the input is a '!'
- meaning a command is invoked from history
- */
+This instruction is called when the first character of the input is a '!'
+meaning a command is invoked from history
+*/
 
 char *command_history(char *input, int count) {
-    int cmd;
-    char *temp;
-    /* '-' means counting backwards from the last commands entered */
-    if ('-' == input[1]) {
-        
-        cmd = strtoul((input+2), NULL, 10);
-        if(cmd == 0) {
-            printf("Invalid parameter\n");
-            return NULL;
-        }
-        cmd = count - cmd;
-    }else {
-        cmd = strtoul((input+1), NULL, 10);
-        if(cmd == 0) {
-            printf("Invalid parameter\n");
-            return NULL;
-        }
-    }
-    
-    if (cmd < 0 || cmd >= count || cmd < count - 20){
-        printf("History item does not exist\n");
-        return NULL;
-    }
-    return saved_history[cmd%20].input_line;
-    
-    
+	int cmd;
+
+/* '-' means counting backwards from the last commands entered */ 
+	if ('-' == input[1]) { 
+		cmd = strtoul((input+2), NULL, 10);
+		cmd = count - cmd;
+	}else 
+		cmd = strtoul((input+1), NULL, 10);  
+
+	if (cmd <= 0 || cmd >= count || cmd < count - 20){
+			printf("Invalid Parameter\n");
+			return NULL;
+	}
+	
+	return saved_history[cmd%20].input_line;
 }
 
 /*
- this is a builtin command that just prints the user command history. Commands invoked
- from history or the invocations !## are not saved. It is not printing the commands
- in order of invocation atm i.e. cmd_no order in struct - to be fixed.
- */
-void history(){
-    int c;
-    
-    for(c = 0; c<20; c++){
-        
-        printf("%d  %s  ", saved_history[c].cmd_no, saved_history[c].input_line);
-        
-    }
+this is a builtin command that just prints the user command history. Commands invoked 
+from history or the invocations !## are not saved. It is not printing the commands 
+in order of invocation atm i.e. cmd_no order in struct - to be fixed. 
+*/  
+void history(){  
+	int c; 
+	/* history is saved in array starting at 1 */
+	for(c = 1; c<21; c++){
+
+		if(saved_history[c%20].cmd_no == 0)
+			break;
+
+		printf(" %d  %s\n", saved_history[c%20].cmd_no, saved_history[c%20].input_line);
+		
+	}
 }
 
 char *get_input() {
-    
-    static int count;
-    static char input[MAXIN]; /* declared as static so it's not on the stack */
-    char *cwd = getcwdir();
-    bool too_much_input = true;
-    int i;
-    
-    do {
-        printf("[%s]%% ", cwd);
-        /*Exits on ctrl+D*/
-        if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
-            quit(); /*Exit on null pointer, given by fgets()*/
-        
-    }
-    /* fgets as scanf() can't handle blank lines */
-    /* check if it was a blank line, i.e. just a '\n' input...*/
-    while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
-    
-    free(cwd);
-    
-    /* Clear the rest of the line if it was longer than the input array */
-    for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
-        switch (input[i]) {
-            case '\n': too_much_input = false; break;
-        }
-    }
-    
-    if (too_much_input) {
-        while (getchar() != '\n');
-    }
-    
-    /*Command history*/
-    /* if (!strcspn(input, "!"));  ASK if we need to use it  - he recommends it, but we managed without it I think.. */
-    
-    if ('!' == input[0]) {
-        return command_history(input, count+1);
-    }
-    
-    count++;
-    
-    saved_history[count%20].cmd_no = count;
-    strcpy(saved_history[count%20].input_line, input);
-    
-    
-    /* If we get to this point it there has to be input so just return it. */
-    return (input);
+	
+	 
+	
+		
+	static char input[MAXIN]; /* declared as static so it's not on the stack */
+	char *cwd = getcwdir();
+	bool too_much_input = true;
+	int i;
+
+	do {
+		printf("[%s]%% ", cwd);
+		/*Exits on ctrl+D*/
+		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
+			quit(); /*Exit on null pointer, given by fgets()*/
+		
+	}
+	/* fgets as scanf() can't handle blank lines */
+	/* check if it was a blank line, i.e. just a '\n' input...*/
+	while ('\n' == input[0]); /*check if input is valid - i.e. not blank*/
+
+	free(cwd);
+
+	/* Clear the rest of the line if it was longer than the input array */
+	for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
+		switch (input[i]) {
+		case '\n': too_much_input = false; break;
+		}
+	}
+
+	if (too_much_input) {
+		while (getchar() != '\n');
+	}
+	
+	/*Command history*/
+	/* if (!strcspn(input, "!"));  ASK if we need to use it  - he recommends it, but we managed without it I think.. */
+	
+	if (!strcspn(input, "!")) {	
+		return command_history(input, count+1); //count +1
+	}
+
+	count++;
+	/*after the count++, the history starts being saved at index 1 */
+	saved_history[count%20].cmd_no = count;
+	input[strcspn(input, "\n")] = 0;
+	strcpy(saved_history[count%20].input_line, input);
+	 
+
+	/* If we get to this point it there has to be input so just return it. */
+	return (input);
 }
 
 void tokenise(char *line, char **tokens) {
-    int p;
-    char *token;
-    
-    p = 0;
-    token = strtok(line, DELIM); /* initial strtok call */
-    /* While there are more tokens and our array isn't full */
-    while (token && (p < SZ_ARGV - 1)) {
-        tokens[p++] = token;
-        token = strtok(NULL, DELIM); /* ...grab the next token */
-    }
-    tokens[p] = 0;
+	int p;
+	char *token;
+
+	p = 0;
+	tokens[2] = NULL;
+	token = strtok(line, DELIM); /* initial strtok call */
+	/* While there are more tokens and our array isn't full */
+	while (token && (p < SZ_ARGV - 1)) {
+		tokens[p++] = token;
+		token = strtok(NULL, DELIM); /* ...grab the next token */
+	}
+	tokens[p] = 0;
 }
 
 int internal_command(char **argv) {
@@ -312,25 +362,25 @@ int internal_command(char **argv) {
 }
 
 void external_command(char **argv) {
-    pid_t pid;
-    
-    /* fork a child process */
-    pid = fork();
-    if (pid < 0) {
-        /* error occurred */
-        fprintf(stderr, "Fork Failed");
-        return;
-    } else if (pid == 0) {
-        /* child process */
-        execvp(argv[0], argv);
-        perror(argv[0]);
-        exit(0);
-    } else {
-        /* parent process */
-        /* parent will wait for the child to complete */
-        wait(NULL);
-        /*printf("Child Complete\n");*/
-    }
+	pid_t pid;
+
+	/* fork a child process */
+	pid = fork();
+	if (pid < 0) {
+		/* error occurred */
+		fprintf(stderr, "Fork Failed");
+		return;
+	} else if (pid == 0) {
+		/* child process */
+		execvp(argv[0], argv);
+		perror(argv[0]);
+		exit(0);
+	} else {
+		/* parent process */
+		/* parent will wait for the child to complete */
+		wait(NULL);
+		/*printf("Child Complete\n");*/
+	}
 }
 
 /* Execute looks for the command specified by filename.
@@ -342,11 +392,11 @@ void external_command(char **argv) {
  * is the name of the command we want to run and the following
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
-    /* Let's make sure there's actually something in the array! */
     int i;
     
     //printf("%d", checkAlias(argv[0]));
     
+    /* Let's make sure there's actually something in the array! */
     if (!**argv) {
         fprintf(stderr,"No arguments given to Execute()");
         return;
@@ -377,19 +427,20 @@ void Execute(char *argv[]) {
 }
 
 int main() {
-    char *input;
-    char *argv[SZ_ARGV];
-    
-    init_alias();
-    
-    pathValue = getenv("PATH");
-    chdir(getenv("HOME")); /*Changes current working directory to HOME */
-    while (1) {
-        input = get_input();
-        if (input != NULL){
-            tokenise(input, argv);
-            Execute(argv);
-        }
-    }
-    return 0;
+	char *input;
+	char *argv[SZ_ARGV];
+
+	printf("test\n");	
+	pathValue = getenv("PATH");
+	chdir(getenv("HOME")); /*Changes current working directory to HOME */
+	load_history();
+	init_alias();
+	while (1) {
+		input = get_input();
+		if (input != NULL){
+			tokenise(input, argv);
+			Execute(argv);
+		}
+	}
+	return 0;
 }
