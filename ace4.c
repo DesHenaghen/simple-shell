@@ -58,8 +58,8 @@ void save_history() {
 		if(saved_history[i%20].cmd_no == 0)
 			break;
 	
-		fprintf(out,"%d\n", saved_history[i].cmd_no);
-		fprintf(out,"%s\n", saved_history[i].input_line);
+		fprintf(out,"%d\n", saved_history[i%20].cmd_no);
+		fprintf(out,"%s\n", saved_history[i%20].input_line);
 			
   }
 	
@@ -229,19 +229,22 @@ this is a builtin command that just prints the user command history. Commands in
 from history or the invocations !## are not saved. It is not printing the commands 
 in order of invocation atm i.e. cmd_no order in struct - to be fixed. 
 */  
-void history(){  
+void history(char **argv){  
 	int c, d = 1; 
-	if(count > 20)
-		d = count + 1;
+	if(argv[1] == NULL){
+		if(count > 20)
+			d = count + 1;
 
-	/* history is saved in array starting at 1 */
-	for(c = d; c<(count+21); c++){
+		/* history is saved in array starting at 1 */
+		for(c = d; c<(count+21); c++){
 
-		if(saved_history[c%20].cmd_no == 0)
-			break;
+			if(saved_history[c%20].cmd_no == 0)
+				break;
 
-		printf(" %d  %s\n", saved_history[c%20].cmd_no, saved_history[c%20].input_line);
-		
+			printf(" %d  %s\n", saved_history[c%20].cmd_no, saved_history[c%20].input_line);
+		}
+	}else{
+		printf("History takes no parameters. Usage: history\n");
 	}
 }
 
@@ -325,7 +328,7 @@ int internal_command(char **argv) {
         setpath(argv);
         return 0;
     } else if (EQ(argv[0], "history")) {
-        history();
+        history(argv);
         return 0;
     } else if (EQ(argv[0], "alias")) {
         setAlias(argv);
