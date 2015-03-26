@@ -10,7 +10,7 @@
 #include <stdbool.h>
 
 /* The name of our shell! */
-#define SHELLNAME "HermitTheKermit"
+#define SHELLNAME "HermitTheKermit2k6"
 /* The number of elements in an array */
 #define LEN(array) sizeof(array)/sizeof(array[0])
 /* Are two strings equal? */
@@ -32,7 +32,8 @@ typedef struct {
 
 typedef struct {
     char name[MAXIN];
-    char *command[10];
+    char oldName[MAXIN];
+    char *command[MAXIN];
 } alias_t;
 
 /* An array for storing history*/
@@ -138,58 +139,47 @@ void setpath(char **argv) {
 	}
 }
 
-void init_alias() {
-    int i;
-    for (i=0; i<10; i++)
-        *(alias[i].command) = calloc(10,sizeof(char*));
-}
-
 void setAlias(char **argv)
 {
-    static int aliasCount;
-    int i;
-    
-    strcpy(alias[aliasCount].name, argv[1]);
-    
-    *alias[aliasCount].command = argv[2];
-    
-    printf("%s\n", alias[aliasCount].command);
-    
-    aliasCount++;
+    static int aliasCount; 
+
+	strcpy(alias[aliasCount].name, argv[1]); /*Alias name*/
+	strcpy(alias[aliasCount].oldName, argv[2]); /*Name of the command we are aliasing*/
+
+	aliasCount++;
 }
 
 int checkAlias(char *name) {
     
     int i;
-    
-    for(i = 0; i < 10; i++)
-    {
-        
-        if(strcmp(name, alias[i].name) == 0)
-        {
-            /*printf("This is an alias. Returning index.\n");*/
-            return i;
-        }
-        
-        if(NULL == alias[i].name)
-        {
-            printf("Not an alias\n");
-            return -1;
-        }
-    }
-    
-    return -1;
+
+	for(i = 0; i < 10; i++) /*Check all aliases*/
+	{
+
+		if(strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
+		{
+			return i; /*Return it's index because we want to execute it*/
+		}
+
+		if(NULL == alias[i].name) /*If it's null return a negative because there's no aliases left*/
+		{
+			return -1;
+		}
+	}
+
+	return -1;
 }
 
 void printAlias()
 {
     int i;
-    
-    for(i = 0; i < 2; i++)
-    {
-        printf("Alias name: %s\n", alias[i].name);
-        printf("Alias command %s\n", alias[i].command);
-    }
+
+	for(int i = 0; i < 2; i++)
+	{
+		printf("Alias name: %s\n", alias[i].name);
+		printf("Alias command %s\n", alias[i].oldName);		
+		//printf("Alias command %s\n", alias[i].command);		
+	}
 }
 
 /*
@@ -375,32 +365,28 @@ void external_command(char **argv) {
 void Execute(char *argv[]) {
     int i;
     
-    //printf("%d", checkAlias(argv[0]));
-    
     /* Let's make sure there's actually something in the array! */
     if (!**argv) {
         fprintf(stderr,"No arguments given to Execute()");
         return;
     }
-    
-    /*Testing purposes*/
-    /*if(EQ(argv[0], "alias"))
-     {
-     internal_command(argv);
-     return;
-     }*/
-    
-    /*Checks if the curent command is an alias - also breaks everything*/
-    
-    i = checkAlias(argv[0]);
-    
-    if(i >= 0)
-    {
-        /*printf("The command is an alias, I am now Executing the alias.");
-         printf("The Alias name is: %s\n", alias[i].name);*/
-        Execute(alias[i].command);
-        return;	
-    }
+   
+	i = checkAlias(argv[0]); /* Will return positive index if there is an alias in command*/
+
+	if(i >= 0) /*If the command line input is an alias*/
+	{
+		if(alias[i].command[i] == NULL) /* ... and there are no paramaters given to the alias*/
+		{
+			argv[0] = alias[i].oldName; /* ... switch the alias with the proper command ...*/
+			internal_command(argv);
+		}
+		else
+		{
+			Execute(alias[i].command); /*Execute the command with paramaters -- DOESN'T WORK YET*/ 
+		}
+		
+		return;	
+	}
     
     if (internal_command(argv) < 0) {
         external_command(argv);
@@ -415,7 +401,6 @@ int main() {
 	pathValue = getenv("PATH");
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
-	init_alias();
 	while (1) {
 		input = get_input();
 		if (input != NULL){
