@@ -41,23 +41,19 @@ static alias_t alias[10];
 
 const char *pathValue;
 
-void save_history() {
-  char *home = getenv("HOME"),
-    *filename = calloc(strlen(home) + strlen(HISTFILE), sizeof(char));
-  FILE *out;
-  int i; 
- 
-  sprintf(filename, "%s/%s", home, HISTFILE);
 
-  if ((out = fopen(filename, "w")) == NULL)
-    perror(filename);
-  
-  free(filename);
+void save_history() { 
+  	FILE *out;
+	int i; 
+	chdir(getenv("HOME"));
+
+  if ((out = fopen(HISTFILE, "w")) == NULL)
+    perror(HISTFILE);
 
   if (out == NULL)
     return;
 
-	for (i = 1; i <= LEN(saved_history); i++) { 
+  for (i = 1; i <= LEN(saved_history); i++) { 
 
 		if(saved_history[i%20].cmd_no == 0)
 			break;
@@ -65,7 +61,7 @@ void save_history() {
 		fprintf(out,"%d\n", saved_history[i].cmd_no);
 		fprintf(out,"%s\n", saved_history[i].input_line);
 			
-	}
+  }
 	
 
   fclose(out); 
@@ -78,7 +74,7 @@ void load_history(){
 	char input[MAXIN];
 
 	printf("test\n");
-	FILE* in = fopen(HISTFILE, "r");
+	FILE* in = fopen(HISTFILE, "rw");
 
 	if (in == NULL) {
   		printf( "Can't open input file in.list!\n");
@@ -106,32 +102,6 @@ void quit() {
 	exit(0);
 }
 
-/* Get the current working directory.
- *
- * Returns: pointer to null-terminated string containing the current
- * working directory.
- *
- * IMPORTANT: This pointer must be freed after use!
- *     e.g.
- *         char *cwd = getcwdir();
- *         printf("%s\n",cwd);
- *         free(cwd);
- */
-char *getcwdir() {
-	long size;
-	char *buf = 0,
-	  *ptr = 0;
-
-	size = pathconf(".", _PC_PATH_MAX);
-
-	/* Potential problem: The allocated memory is never freed. Is
-	 * that an issue? (resource leak?) */
-	if ((buf = (char *) malloc((size_t) size)) != NULL)
-		ptr = getcwd(buf, (size_t) size);
-
-	return ptr;
-}
-
 void cd(char **argv) {
 	if(argv[2] == NULL){
 	  	if (!argv[1]){
@@ -141,11 +111,10 @@ void cd(char **argv) {
 				perror(argv[1]);
 		}
 	}else{
-		printf("Invalid parameters\n");
+		printf("Too many parameters. Usage: cd [directory]\n");
 	}
 
-  /*if (chdir(directory))
-    perror(directory);*/
+  
 }
 
 /* Return the PATH environment variable */
@@ -153,7 +122,7 @@ void getpath(char **argv) {
 	if(argv[1] == NULL){
 		printf("%s\n", getenv("PATH"));
 	}else{
-		printf("Invalid parameters\n");
+		printf("Expects no parameters. Usage: getpath\n");
 	}
 }
 
@@ -162,10 +131,10 @@ void setpath(char **argv) {
 		if (argv[1] != NULL) {
 			setenv("PATH", argv[1], 1);
 		} else {
-			printf("Invalid path value: null\n");
+			printf("Setpath takes 1 parameter. Usage: setpath path\n");
 		}
 	}else{
-		printf("Invalid parameters\n");
+		printf("Too many parameters. Usage: setpath path\n");
 	}
 }
 
@@ -216,7 +185,7 @@ void printAlias()
 {
     int i;
     
-    for(int i = 0; i < 2; i++)
+    for(i = 0; i < 2; i++)
     {
         printf("Alias name: %s\n", alias[i].name);
         printf("Alias command %s\n", alias[i].command);
@@ -235,11 +204,20 @@ char *command_history(char *input, int count) {
 	if ('-' == input[1]) { 
 		cmd = strtoul((input+2), NULL, 10);
 		cmd = count - cmd;
-	}else 
-		cmd = strtoul((input+1), NULL, 10);  
+		if(cmd <= 0){
+			printf("History item does not exist\n");
+			return NULL;
+		}
+	}else {
+		cmd = strtoul((input+1), NULL, 10); 
+		if(cmd == 0){
+			printf("History item does not exist\n");
+			return NULL;
+		}
+	}
 
-	if (cmd <= 0 || cmd >= count || cmd < count - 20){
-			printf("Invalid Parameter\n");
+	if (cmd < 0 || cmd > count || cmd < count - 20){
+			printf("History item does not exist\n");
 			return NULL;
 	}
 	
@@ -252,9 +230,12 @@ from history or the invocations !## are not saved. It is not printing the comman
 in order of invocation atm i.e. cmd_no order in struct - to be fixed. 
 */  
 void history(){  
-	int c; 
+	int c, d = 1; 
+	if(count > 20)
+		d = count + 1;
+
 	/* history is saved in array starting at 1 */
-	for(c = 1; c<21; c++){
+	for(c = d; c<(count+21); c++){
 
 		if(saved_history[c%20].cmd_no == 0)
 			break;
@@ -266,11 +247,8 @@ void history(){
 
 char *get_input() {
 	
-	 
-	
-		
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
-	char *cwd = getcwdir();
+	char *cwd = get_current_dir_name();
 	bool too_much_input = true;
 	int i;
 
@@ -302,7 +280,7 @@ char *get_input() {
 	/* if (!strcspn(input, "!"));  ASK if we need to use it  - he recommends it, but we managed without it I think.. */
 	
 	if (!strcspn(input, "!")) {	
-		return command_history(input, count+1); //count +1
+		return command_history(input, count); //count +1
 	}
 
 	count++;
