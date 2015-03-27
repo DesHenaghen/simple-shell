@@ -141,12 +141,16 @@ void setpath(char **argv) {
 
 void setAlias(char **argv)
 {
-    static int aliasCount; 
-
-	strcpy(alias[aliasCount].name, argv[1]); /*Alias name*/
-	strcpy(alias[aliasCount].oldName, argv[2]); /*Name of the command we are aliasing*/
-
-	aliasCount++;
+    	static int aliasCount; 
+	
+	if(argv[2] != NULL)
+	{
+		strcpy(alias[aliasCount].name, argv[1]); /*Alias name*/
+		strcpy(alias[aliasCount].oldName, argv[2]); /*Name of the command we are aliasing*/
+		aliasCount++;
+	} else {
+		printf("Alias takes 2 paramaters. Usage: alias name command\n");
+}
 }
 
 int checkAlias(char *name) {
@@ -155,16 +159,15 @@ int checkAlias(char *name) {
 
 	for(i = 0; i < 10; i++) /*Check all aliases*/
 	{
-
-		if(strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
-		{
-			return i; /*Return it's index because we want to execute it*/
-		}
-
+		
 		if(NULL == alias[i].name) /*If it's null return a negative because there's no aliases left*/
 		{
 			return -1;
 		}
+		else (strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
+		{
+			return i; /*Return it's index because we want to execute it*/
+		}	
 	}
 
 	return -1;
@@ -174,12 +177,12 @@ void printAlias()
 {
     int i;
 
-	for(int i = 0; i < 2; i++)
-	{
+    for(i = 0; i < 2; i++)
+    {
 		printf("Alias name: %s\n", alias[i].name);
 		printf("Alias command %s\n", alias[i].oldName);		
 		//printf("Alias command %s\n", alias[i].command);		
-	}
+    }
 }
 
 /*
