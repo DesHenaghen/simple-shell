@@ -139,7 +139,7 @@ void setpath(char **argv) {
 	}
 }
 
-void setAlias(char **argv)
+void set_alias(char **argv)
 {
     	static int aliasCount; 
 	
@@ -153,7 +153,7 @@ void setAlias(char **argv)
 }
 }
 
-int checkAlias(char *name) {
+int check_alias(char *name) {
     
     int i;
 
@@ -173,7 +173,7 @@ int checkAlias(char *name) {
 	return -1;
 }
 
-void printAlias()
+void print_alias()
 {
     int i;
 
@@ -324,10 +324,10 @@ int internal_command(char **argv) {
         history(argv);
         return 0;
     } else if (EQ(argv[0], "alias")) {
-        setAlias(argv);
+        set_alias(argv);
         return 0;
     } else if (EQ(argv[0], "printa")) {
-        printAlias();
+        print_alias();
         return 0;
     }
     
@@ -374,7 +374,7 @@ void Execute(char *argv[]) {
         return;
     }
    
-	i = checkAlias(argv[0]); /* Will return positive index if there is an alias in command*/
+	i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
 
 	if(i >= 0) /*If the command line input is an alias*/
 	{
