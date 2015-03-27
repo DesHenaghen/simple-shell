@@ -157,18 +157,18 @@ int checkAlias(char *name) {
     
     int i;
 
-	for(i = 0; i < 10; i++) /*Check all aliases*/
-	{
+    for(i = 0; i < 10; i++) /*Check all aliases*/
+    {
 		
-		if(NULL == alias[i].name) /*If it's null return a negative because there's no aliases left*/
-		{
-			return -1;
-		}
-		else (strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
-		{
-			return i; /*Return it's index because we want to execute it*/
-		}	
+	if(NULL == alias[i].name) /*If it's null return a negative because there's no aliases left*/
+	{
+		return -1;
 	}
+	else if (strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
+	{
+			return i; /*Return it's index because we want to execute it*/
+	}	
+    }
 
 	return -1;
 }
