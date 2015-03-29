@@ -20,6 +20,7 @@
 #define DELIM " \n\t|><&;" /* DELIM is the string containing all delimiters for tokens */
 #define SZ_ARGV 50 /* Size of the argv array */
 #define HISTFILE ".hist_list"
+#define MAXALIAS 10
 
 /*Keeps count of the command number being executed*/ 
 static int count;
@@ -37,7 +38,8 @@ typedef struct {
 
 /* An array for storing history*/
 static history_line_t saved_history [20];
-static alias_t alias[10];
+static alias_t alias[MAXALIAS];
+static int aliasCount;
 
 const char *pathValue;
 
@@ -138,44 +140,67 @@ void setpath(char **argv) {
 	}
 }
 
-int add_alias(char *name) {
-    
+int check_alias(char *name) {    
     int i;
 
-    for(i = 0; i < 10; i++) /*Check all aliases*/
-    {
-		
-	if(NULL == alias[i].name)
-	{
-		return i;
-	}
-	else if (strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
-	{
-		return i;
-	}	
+    for(i = 0; i < MAXALIAS; i++) { /* Check all aliases */
+		if(NULL == alias[i].name) { /* If it's null return a negative because there's no aliases left */
+			return -1;
+		}
+		else if (strcmp(name, alias[i].name) == 0) { /* If we find an existing alias */
+			return i; /* Return it's index */
+		}	
     }
-
 	return -1;
 }
 
-int check_alias(char *name) {
-    
-    int i;
+void printalias() {
+	int i;
+	int p;
 
-    for(i = 0; i < 10; i++) /*Check all aliases*/
-    {
-		
-	if(NULL == alias[i].name) /*If it's null return a negative because there's no aliases left*/
-	{
-		return -1;
+	if (alias[0].name == NULL) {
+		printf("No aliases found\n");
+		return;
 	}
-	else if (strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
-	{
-			return i; /*Return it's index because we want to execute it*/
-	}	
-    }
+	for (i=0; i<MAXALIAS; i++) {
+		if (alias[i].name == NULL)
+			break;
+		printf("Alias[%d]: %s: ", i, alias[i].name);
+		for (p=0; p<MAXIN; p++) {
+			if (alias[i].command[p] == NULL)
+				break;
+			printf("%s ", alias[i].command[p]);
+		}
+		printf("\n");
+	}
+}
 
-	return -1;
+void unalias(char* name) {
+	int i;
+	int p;
+
+	i = check_alias(name);
+	if (i<0)
+		return;	/* <name> was not found, nothing to do here */
+	if (alias[i+1].name == NULL) { /* if this is the last entry in the array... */
+		/* ...simply free the memory... */
+		free(alias[i].name);
+		for (p=0; alias[i].command[p]!=NULL; p++)
+			free(alias[i].command[p]);
+	} else { /* ...otherwise... */
+		/* ...shift the following entries back one... */
+		for (i+=2; alias[i].name!=NULL; i++) {
+			alias[i-1].name = alias[i].name;
+			for (p=0; alias[i].command[p]!=NULL; p++)
+				alias[i-1].command[p] = alias[i].command[p];
+		}
+		/* ...and free the last location */
+		i--;
+		free(alias[i].name);
+		for (p=0; alias[i].command[p]!=NULL; p++)
+			free(alias[i].command[p]);
+	}
+	aliasCount--;
 }
 
 /*
@@ -287,7 +312,6 @@ int tokenise(char *line, char **tokens) {
 	int p;
 	char *token;
 	char *name;
-	static int aliasCount;
 	int i;
 
 
@@ -296,28 +320,22 @@ int tokenise(char *line, char **tokens) {
 	tokens[2] = NULL;
 	token = strtok(line, DELIM); /* initial strtok call */
 
-	if(EQ(token, "alias"))
-	{
-		
-			while (token && (p < SZ_ARGV - 1)) {
-				tokens[p++] = token;
-				if(p > 2)
-				{ 
-					alias[aliasCount].command[i] = (char *) malloc(100);
-					strcpy(alias[aliasCount].command[i], token);
-					i++;
-				} else if (p == 2)
-				{
-					alias[aliasCount].name = (char *) malloc(100);
-					strcpy(alias[aliasCount].name, token);
-				}
-				token = strtok(NULL, DELIM);
+	if(EQ(token, "alias")) {
+		while (token && (p < SZ_ARGV - 1)) {
+			tokens[p++] = token;
+			if(p > 2) { 
+				alias[aliasCount].command[i] = (char *) malloc(sizeof(char*));
+				strcpy(alias[aliasCount].command[i++], token);
+			} else if (p == 2) {
+				alias[aliasCount].name = (char *) malloc(sizeof(char*));
+				strcpy(alias[aliasCount].name, token);
 			}
-			tokens[p] = 0;
-			aliasCount++;
-			return -1;
-	} else 
-	{
+			token = strtok(NULL, DELIM);
+		}
+		tokens[p] = 0;
+		aliasCount++;
+		return -1;
+	} else {
 		/* While there are more tokens and our array isn't full */
 		while (token && (p < SZ_ARGV - 1)) {
 			tokens[p++] = token;
@@ -346,8 +364,14 @@ int internal_command(char **argv) {
     } else if (EQ(argv[0], "history")) {
         history(argv);
         return 0;
-    }
-    
+    } else if (EQ(argv[0], "printalias")) {
+		printalias();
+		return 0;
+	} else if (EQ(argv[0], "unalias")) {
+		unalias(argv[1]);
+		return 0;
+	}
+
     /* Return negative number if command not found */
     return -1;
 }
