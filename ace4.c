@@ -31,8 +31,7 @@ typedef struct {
 } history_line_t;
 
 typedef struct {
-    char name[MAXIN];
-    char oldName[MAXIN];
+    char *name;
     char *command[MAXIN];
 } alias_t;
 
@@ -139,18 +138,24 @@ void setpath(char **argv) {
 	}
 }
 
-void set_alias(char **argv)
-{
-    	static int aliasCount; 
-	
-	if(argv[2] != NULL)
+int add_alias(char *name) {
+    
+    int i;
+
+    for(i = 0; i < 10; i++) /*Check all aliases*/
+    {
+		
+	if(NULL == alias[i].name)
 	{
-		strcpy(alias[aliasCount].name, argv[1]); /*Alias name*/
-		strcpy(alias[aliasCount].oldName, argv[2]); /*Name of the command we are aliasing*/
-		aliasCount++;
-	} else {
-		printf("Alias takes 2 paramaters. Usage: alias name command\n");
-}
+		return i;
+	}
+	else if (strcmp(name, alias[i].name) == 0) /*If we find an existing alias*/
+	{
+		return i;
+	}	
+    }
+
+	return -1;
 }
 
 int check_alias(char *name) {
@@ -171,18 +176,6 @@ int check_alias(char *name) {
     }
 
 	return -1;
-}
-
-void print_alias()
-{
-    int i;
-
-    for(i = 0; i < 2; i++)
-    {
-		printf("Alias name: %s\n", alias[i].name);
-		printf("Alias command %s\n", alias[i].oldName);		
-		//printf("Alias command %s\n", alias[i].command);		
-    }
 }
 
 /*
@@ -290,19 +283,49 @@ char *get_input() {
 	return (input);
 }
 
-void tokenise(char *line, char **tokens) {
+int tokenise(char *line, char **tokens) {
 	int p;
 	char *token;
+	char *name;
+	static int aliasCount;
+	int i;
+
 
 	p = 0;
+	i = 0;
 	tokens[2] = NULL;
 	token = strtok(line, DELIM); /* initial strtok call */
-	/* While there are more tokens and our array isn't full */
-	while (token && (p < SZ_ARGV - 1)) {
-		tokens[p++] = token;
-		token = strtok(NULL, DELIM); /* ...grab the next token */
+
+	if(EQ(token, "alias"))
+	{
+		
+			while (token && (p < SZ_ARGV - 1)) {
+				tokens[p++] = token;
+				if(p > 2)
+				{ 
+					alias[aliasCount].command[i] = (char *) malloc(100);
+					strcpy(alias[aliasCount].command[i], token);
+					i++;
+				} else if (p == 2)
+				{
+					alias[aliasCount].name = (char *) malloc(100);
+					strcpy(alias[aliasCount].name, token);
+				}
+				token = strtok(NULL, DELIM);
+			}
+			tokens[p] = 0;
+			aliasCount++;
+			return -1;
+	} else 
+	{
+		/* While there are more tokens and our array isn't full */
+		while (token && (p < SZ_ARGV - 1)) {
+			tokens[p++] = token;
+			token = strtok(NULL, DELIM); /* ...grab the next token */
+		}
+		tokens[p] = 0;
+		return 1;
 	}
-	tokens[p] = 0;
 }
 
 int internal_command(char **argv) {
@@ -322,12 +345,6 @@ int internal_command(char **argv) {
         return 0;
     } else if (EQ(argv[0], "history")) {
         history(argv);
-        return 0;
-    } else if (EQ(argv[0], "alias")) {
-        set_alias(argv);
-        return 0;
-    } else if (EQ(argv[0], "printa")) {
-        print_alias();
         return 0;
     }
     
@@ -373,23 +390,16 @@ void Execute(char *argv[]) {
         fprintf(stderr,"No arguments given to Execute()");
         return;
     }
-   
-	i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
+	
+    i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
 
-	if(i >= 0) /*If the command line input is an alias*/
-	{
-		if(alias[i].command[i] == NULL) /* ... and there are no paramaters given to the alias*/
-		{
-			argv[0] = alias[i].oldName; /* ... switch the alias with the proper command ...*/
-			internal_command(argv);
-		}
-		else
-		{
-			Execute(alias[i].command); /*Execute the command with paramaters -- DOESN'T WORK YET*/ 
-		}
-		
-		return;	
-	}
+    if(i >= 0) /*If the command line input is an alias*/
+    {
+
+	Execute(alias[i].command);
+	return;	
+    }
+    
     
     if (internal_command(argv) < 0) {
         external_command(argv);
@@ -407,8 +417,10 @@ int main() {
 	while (1) {
 		input = get_input();
 		if (input != NULL){
-			tokenise(input, argv);
-			Execute(argv);
+			if(tokenise(input, argv) > 0)
+			{
+				Execute(argv);
+			}
 		}
 	}
 	return 0;
