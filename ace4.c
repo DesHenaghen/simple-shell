@@ -140,6 +140,8 @@ void setpath(char **argv) {
 	}
 }
 
+/*Checks if the input is an alias or not - returns index of the alias if we find one, and -1 if not*/
+
 int check_alias(char *name) {    
     int i;
 
@@ -153,6 +155,55 @@ int check_alias(char *name) {
     }
 	return -1;
 }
+
+/*Checks for duplicates in the alias array and also for empty position in array - returns index of duplicate old aliases are overwritten with the newer*/
+
+int check_alias_position(char* name)
+{
+	int i;
+
+	for(i = 0; i < 10; i++)
+	{
+		if(NULL == alias[i].name)
+		{
+			return i;
+		}
+		else if (EQ(name, alias[i].name))
+		{
+			return i;
+		}
+	}
+	
+	return;
+}
+
+/*Adds an alias by tokenising the command line input*/
+
+add_alias(char *token, char* line, char **tokens) {
+	int p;
+	int i;
+	int position;
+	p = 0;
+	i = 0;
+	tokens[2] = NULL;
+
+	while (token && (p < SZ_ARGV - 1)) {
+			tokens[p++] = token;
+			if(p == 2) { 
+				position = check_alias_position(token);
+				alias[position].name = (char *) malloc(sizeof(char*));
+				strcpy(alias[position].name, token);	
+			} else if (p > 2) {
+				alias[position].command[i] = (char *) malloc(sizeof(char*));
+				strcpy(alias[position].command[i], token);
+				i++;		
+			}
+			token = strtok(NULL, DELIM);
+		}
+		tokens[p] = 0;
+}
+
+/*Prints list of current aliases*/
 
 void printalias() {
 	int i;
@@ -175,32 +226,51 @@ void printalias() {
 	}
 }
 
+/*Removes an alias*/
+
 void unalias(char* name) {
 	int i;
-	int p;
+	i = 0;
+
+	/*Had to comment out because no longer using aliasCount*/
+
+	/*int p;
 
 	i = check_alias(name);
 	if (i<0)
-		return;	/* <name> was not found, nothing to do here */
-	if (alias[i+1].name == NULL) { /* if this is the last entry in the array... */
-		/* ...simply free the memory... */
+		return;	
+	if (alias[i+1].name == NULL) { 
 		free(alias[i].name);
 		for (p=0; alias[i].command[p]!=NULL; p++)
 			free(alias[i].command[p]);
-	} else { /* ...otherwise... */
-		/* ...shift the following entries back one... */
+	} else {
 		for (i+=2; alias[i].name!=NULL; i++) {
 			alias[i-1].name = alias[i].name;
 			for (p=0; alias[i].command[p]!=NULL; p++)
 				alias[i-1].command[p] = alias[i].command[p];
 		}
-		/* ...and free the last location */
 		i--;
 		free(alias[i].name);
 		for (p=0; alias[i].command[p]!=NULL; p++)
 			free(alias[i].command[p]);
 	}
-	aliasCount--;
+	aliasCount--;*/
+	
+	/*Not working yet -- needs some thought*/
+	for(i = 0; i < 10; i++)
+	{
+		if(NULL == alias[i].name)
+		{
+			printf("Alias not found.");
+			return;
+		} else if(EQ(name, alias[i].name))
+		{
+			alias[i].name = "";
+			/*alias[i].command = NULL;*/
+			printf("Alias removed");
+			return;
+		}
+	}
 }
 
 /*
@@ -311,31 +381,15 @@ char *get_input() {
 int tokenise(char *line, char **tokens) {
 	int p;
 	char *token;
-	char *name;
-	int i;
 
-
-	p = 0;
-	i = 0;
-	tokens[2] = NULL;
 	token = strtok(line, DELIM); /* initial strtok call */
 
 	if(EQ(token, "alias")) {
-		while (token && (p < SZ_ARGV - 1)) {
-			tokens[p++] = token;
-			if(p > 2) { 
-				alias[aliasCount].command[i] = (char *) malloc(sizeof(char*));
-				strcpy(alias[aliasCount].command[i++], token);
-			} else if (p == 2) {
-				alias[aliasCount].name = (char *) malloc(sizeof(char*));
-				strcpy(alias[aliasCount].name, token);
-			}
-			token = strtok(NULL, DELIM);
-		}
-		tokens[p] = 0;
-		aliasCount++;
+		add_alias(token, line, tokens);
 		return -1;
 	} else {
+		p = 0;
+		tokens[2] = NULL;
 		/* While there are more tokens and our array isn't full */
 		while (token && (p < SZ_ARGV - 1)) {
 			tokens[p++] = token;
