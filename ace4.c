@@ -43,7 +43,6 @@ static int aliasCount;
 
 const char *pathValue;
 
-
 void save_history() { 
   	FILE *out;
 	int i; 
@@ -173,8 +172,10 @@ int check_alias_position(char* name)
 			return i;
 		}
 	}
+		
+	printf("You're storing too many aliases. Remove some to add more!\n");
 	
-	return;
+	return -1;	
 }
 
 /*Adds an alias by tokenising the command line input*/
@@ -191,12 +192,18 @@ add_alias(char *token, char* line, char **tokens) {
 			tokens[p++] = token;
 			if(p == 2) { 
 				position = check_alias_position(token);
-				alias[position].name = (char *) malloc(sizeof(char*));
-				strcpy(alias[position].name, token);	
+				if(position >= 0)
+				{
+					alias[position].name = (char *) malloc(sizeof(char*));
+					strcpy(alias[position].name, token);
+				}			
 			} else if (p > 2) {
-				alias[position].command[i] = (char *) malloc(sizeof(char*));
-				strcpy(alias[position].command[i], token);
-				i++;		
+				if(position >= 0)
+				{
+					alias[position].command[i] = (char *) malloc(sizeof(char*));
+					strcpy(alias[position].command[i], token);
+					i++;
+				}		
 			}
 			token = strtok(NULL, DELIM);
 		}
@@ -208,21 +215,32 @@ add_alias(char *token, char* line, char **tokens) {
 void printalias() {
 	int i;
 	int p;
+	int arrayEmpty;
+	
+	arrayEmpty = 1;
 
-	if (alias[0].name == NULL) {
-		printf("No aliases found\n");
-		return;
-	}
 	for (i=0; i<MAXALIAS; i++) {
-		if (alias[i].name == NULL)
-			break;
-		printf("Alias[%d]: %s: ", i, alias[i].name);
-		for (p=0; p<MAXIN; p++) {
-			if (alias[i].command[p] == NULL)
-				break;
-			printf("%s ", alias[i].command[p]);
+		if (alias[i].name == NULL) {
+			continue; 
+		} 
+		else {
+			arrayEmpty = 0;
+
+			printf("Alias[%d]: %s: ", i, alias[i].name);
+		
+			for (p=0; p<MAXIN; p++) {
+				if (alias[i].command[p] == NULL) {
+					break;	
+				}
+				
+				printf("%s ", alias[i].command[p]);
+			}
+			printf("\n");
 		}
-		printf("\n");
+	}
+
+	if(arrayEmpty) {
+		printf("There are no aliases to print\n");
 	}
 }
 
@@ -232,45 +250,23 @@ void unalias(char* name) {
 	int i;
 	i = 0;
 
-	/*Had to comment out because no longer using aliasCount*/
-
-	/*int p;
-
-	i = check_alias(name);
-	if (i<0)
-		return;	
-	if (alias[i+1].name == NULL) { 
-		free(alias[i].name);
-		for (p=0; alias[i].command[p]!=NULL; p++)
-			free(alias[i].command[p]);
-	} else {
-		for (i+=2; alias[i].name!=NULL; i++) {
-			alias[i-1].name = alias[i].name;
-			for (p=0; alias[i].command[p]!=NULL; p++)
-				alias[i-1].command[p] = alias[i].command[p];
-		}
-		i--;
-		free(alias[i].name);
-		for (p=0; alias[i].command[p]!=NULL; p++)
-			free(alias[i].command[p]);
-	}
-	aliasCount--;*/
-	
-	/*Not working yet -- needs some thought*/
 	for(i = 0; i < 10; i++)
 	{
 		if(NULL == alias[i].name)
 		{
-			printf("Alias not found.");
-			return;
+			continue;
 		} else if(EQ(name, alias[i].name))
 		{
-			alias[i].name = "";
-			/*alias[i].command = NULL;*/
-			printf("Alias removed");
+			alias[i].name = NULL;
+			free(alias[i].name);
+			/*alias[i].command = NULL;
+			free(alias[i].command);*/
+			printf("Alias removed\n");
 			return;
-		}
+		} 
 	}
+
+	printf("No aliases found of that name.\n");
 }
 
 /*
