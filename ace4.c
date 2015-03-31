@@ -60,8 +60,7 @@ void save_history() {
 			break;
 	
 		fprintf(out,"%d\n", saved_history[i%20].cmd_no);
-		fprintf(out,"%s\n", saved_history[i%20].input_line);
-			
+		fprintf(out,"%s\n", saved_history[i%20].input_line);			
   }
 	
 
@@ -74,7 +73,6 @@ void load_history(){
 	int maxCount=0;
 	char input[MAXIN];
 
-	printf("test\n");
 	FILE* in = fopen(HISTFILE, "rw");
 
 	if (in == NULL) {
@@ -160,8 +158,9 @@ int check_alias(char *name) {
 int check_alias_position(char* name)
 {
 	int i;
+	int j;
 
-	for(i = 0; i < 10; i++)
+	for(i = 0; i < MAXALIAS; i++)
 	{
 		if(NULL == alias[i].name)
 		{
@@ -169,6 +168,10 @@ int check_alias_position(char* name)
 		}
 		else if (EQ(name, alias[i].name))
 		{
+			for(j = 0; j < SZ_ARGV; j++)
+			{
+				alias[i].command[j] = NULL;
+			}
 			return i;
 		}
 	}
@@ -176,6 +179,70 @@ int check_alias_position(char* name)
 	printf("You're storing too many aliases. Remove some to add more!\n");
 	
 	return -1;	
+}
+
+
+
+/*Prints list of current aliases*/
+
+void printalias() {
+	int i;
+	int p;
+	int arrayEmpty;
+	
+	arrayEmpty = 1;
+
+	for (i=0; i<MAXALIAS; i++) {
+		if (alias[i].name == NULL) {
+			continue;
+		} 
+		else {
+			arrayEmpty = 0;
+
+			printf("Alias[%d]: %s: ", i, alias[i].name);
+		
+			for (p=0; p<MAXIN; p++) {
+				if (alias[i].command[p] == NULL) {
+						break;	
+				}
+				
+				printf("%s ", alias[i].command[p]);
+			}
+			printf("\n");
+		}	
+	}
+
+	if(arrayEmpty) {
+		printf("There are no aliases to print\n");
+	}
+}
+
+/*Removes an alias*/
+
+void unalias(char* name) {
+	int i;
+	int j;
+
+	for(i = 0; i < MAXALIAS; i++)
+	{
+		if(NULL == alias[i].name)
+		{
+			continue;
+		} else if(EQ(name, alias[i].name))
+		{
+			alias[i].name = NULL;
+			free(alias[i].name);
+			for(j = 0; j < SZ_ARGV; j++)
+			{
+				alias[i].command[j] = NULL;
+				free(alias[i].command[j]);
+			}
+			printf("Alias removed\n");
+			return;
+		} 
+	}
+
+	printf("No aliases found of that name.\n");
 }
 
 /*Adds an alias by tokenising the command line input*/
@@ -190,7 +257,11 @@ add_alias(char *token, char* line, char **tokens) {
 
 	while (token && (p < SZ_ARGV - 1)) {
 			tokens[p++] = token;
-			if(p == 2) { 
+			if(p == 1 && token == NULL)
+			{
+				printalias();
+				return;
+			} else if(p == 2) { 
 				position = check_alias_position(token);
 				if(position >= 0)
 				{
@@ -208,65 +279,6 @@ add_alias(char *token, char* line, char **tokens) {
 			token = strtok(NULL, DELIM);
 		}
 		tokens[p] = 0;
-}
-
-/*Prints list of current aliases*/
-
-void printalias() {
-	int i;
-	int p;
-	int arrayEmpty;
-	
-	arrayEmpty = 1;
-
-	for (i=0; i<MAXALIAS; i++) {
-		if (alias[i].name == NULL) {
-			continue; 
-		} 
-		else {
-			arrayEmpty = 0;
-
-			printf("Alias[%d]: %s: ", i, alias[i].name);
-		
-			for (p=0; p<MAXIN; p++) {
-				if (alias[i].command[p] == NULL) {
-					break;	
-				}
-				
-				printf("%s ", alias[i].command[p]);
-			}
-			printf("\n");
-		}
-	}
-
-	if(arrayEmpty) {
-		printf("There are no aliases to print\n");
-	}
-}
-
-/*Removes an alias*/
-
-void unalias(char* name) {
-	int i;
-	i = 0;
-
-	for(i = 0; i < 10; i++)
-	{
-		if(NULL == alias[i].name)
-		{
-			continue;
-		} else if(EQ(name, alias[i].name))
-		{
-			alias[i].name = NULL;
-			free(alias[i].name);
-			/*alias[i].command = NULL;
-			free(alias[i].command);*/
-			printf("Alias removed\n");
-			return;
-		} 
-	}
-
-	printf("No aliases found of that name.\n");
 }
 
 /*
@@ -328,7 +340,9 @@ void history(char **argv){
 char *get_input() {
 	
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
+
 	char *cwd = get_current_dir_name();
+
 	bool too_much_input = true;
 	int i;
 
@@ -415,12 +429,12 @@ int internal_command(char **argv) {
         history(argv);
         return 0;
     } else if (EQ(argv[0], "printalias")) {
-		printalias();
-		return 0;
-	} else if (EQ(argv[0], "unalias")) {
-		unalias(argv[1]);
-		return 0;
-	}
+	printalias();
+	return 0;
+    } else if (EQ(argv[0], "unalias")) {
+	unalias(argv[1]);
+	return 0;
+    }
 
     /* Return negative number if command not found */
     return -1;
@@ -469,7 +483,6 @@ void Execute(char *argv[]) {
 
     if(i >= 0) /*If the command line input is an alias*/
     {
-
 	Execute(alias[i].command);
 	return;	
     }
@@ -483,8 +496,7 @@ void Execute(char *argv[]) {
 int main() {
 	char *input;
 	char *argv[SZ_ARGV];
-
-	printf("test\n");	
+	
 	pathValue = getenv("PATH");
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
