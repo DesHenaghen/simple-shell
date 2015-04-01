@@ -31,7 +31,7 @@ static int count;
 typedef struct {
   int cmd_no;
   char input_line[MAXIN];
-} history_t;
+} history_line_t;
 
 typedef struct {
     char *name;
@@ -40,7 +40,7 @@ typedef struct {
 } alias_t;
 
 /* An array for storing history*/
-static history_t saved_history [20];
+static history_line_t saved_history [20];
 static alias_t alias[MAXALIAS];
 // static int aliasCount;
 
@@ -81,6 +81,8 @@ void save_history() {
 
   if ((out = fopen(HISTFILE, "w")) == NULL) {
     perror(HISTFILE);
+
+  if (out == NULL)
     return;
   }
 
@@ -168,6 +170,7 @@ void setpath(char **argv) {
 	}
 }
 
+
 /*Checks if the input is an alias or not - returns index of the alias if we find one, and -1 if not*/
 
 int check_alias(char *name) {    
@@ -248,21 +251,18 @@ void printalias() {
 
 /*Removes an alias*/
 
-void unalias(char **argv) {
+void unalias(char* name) {
 	int i;
 	int j;
 
-	if (!argv[1]) {
-		printf("Usage: unalias [name]\n");
-		return;
-	}
+
 
 	for(i = 0; i < MAXALIAS; i++)
 	{
 		if(NULL == alias[i].name)
 		{
 			continue;
-		} else if(EQ(argv[1], alias[i].name))
+		} else if(EQ(name, alias[i].name))
 		{
 			alias[i].name = NULL;
 			free(alias[i].name);
@@ -308,6 +308,7 @@ void add_alias(char **argv) {
 		strcpy(alias[position].command[j], argv[i]);
 		alias[position].num_tokens++;
 	}
+
 }
 
 /*
@@ -338,9 +339,9 @@ char *command_history(char *input, int count) {
 			printf("History item does not exist\n");
 			return NULL;
 	}
-	
-	printf("%s", saved_history[cmd%20].input_line);
-	return saved_history[cmd%20].input_line;
+
+	strcpy(input, saved_history[cmd%20].input_line);
+	return input;
 }
 
 /*
@@ -367,7 +368,9 @@ void history(char **argv){
 	}
 }
 
+
 char* get_input() {
+	
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
 
 	char *cwd = get_current_dir_name();
@@ -446,25 +449,30 @@ int internal_command(char **argv) {
         quit();
     } else if (EQ(argv[0], "cd")) {
         cd(argv);
+        return 0;
     } else if (EQ(argv[0], "getpath")) {
         getpath(argv);
+        return 0;
     } else if (EQ(argv[0], "setpath")) {
         setpath(argv);
+        return 0;
     } else if (EQ(argv[0], "history")) {
         history(argv);
+        return 0;
     } else if (EQ(argv[0], "alias")) {
 		add_alias(argv);
+		return 0;
     } else if (EQ(argv[0], "unalias")) {
-		unalias(argv);
+		unalias(argv[1]);
+		return 0;
     } else if (!strcspn(argv[0], "!")) {	
 		tokenise(command_history(argv[0], count-1), argv);
 		Execute(argv);
-    } else {
-	/* Return negative number if command not found */
-   		return -1;
-    }
+		return 0;
+	}
 
-    return 0;
+    /* Return negative number if command not found */
+    return -1;
 }
 
 void external_command(char **argv) {
@@ -524,8 +532,15 @@ int dealias(char **argv) {
  * is the name of the command we want to run and the following
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
-	printf("hi\n");	
-    if (dealias(argv)==1) {
+    int alias_i;
+
+    /* Let's make sure there's actually something in the array! */
+    if (!**argv) {
+        fprintf(stderr,"No arguments given to Execute()");
+        return;
+    }
+
+	if (dealias(argv)==1) {
 		if (invoke_hist(argv[0])==1) {
 			printf("Aborting execution to avoid circular alias/history calls\n");
 			return;
@@ -533,7 +548,7 @@ void Execute(char *argv[]) {
 		Execute(argv);
 		return;
 	}
-
+    
     if (internal_command(argv) < 0) {
         external_command(argv);
     }
