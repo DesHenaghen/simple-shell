@@ -1,5 +1,7 @@
 /* ACE 4 */
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,7 +23,6 @@
 #define SZ_ARGV 50 /* Size of the argv array */
 #define HISTFILE ".hist_list"
 #define MAXALIAS 10
-#define _GNU_SOURCE
 
 /*Keeps count of the command number being executed*/ 
 static int count;
@@ -35,12 +36,13 @@ typedef struct {
 typedef struct {
     char *name;
     char *command[MAXIN];
+    int num_tokens;
 } alias_t;
 
 /* An array for storing history*/
 static history_line_t saved_history [20];
 static alias_t alias[MAXALIAS];
-static int aliasCount;
+// static int aliasCount;
 
 const char *pathValue;
 
@@ -176,8 +178,6 @@ int check_alias_position(char* name)
 			return i;
 		}
 	}
-		
-	printf("You're storing too many aliases. Remove some to add more!\n");
 	
 	return -1;	
 }
@@ -248,14 +248,37 @@ void unalias(char* name) {
 
 /*Adds an alias by tokenising the command line input*/
 
-void add_alias(char *token, char* line, char **tokens) {
-	int p;
-	int i;
+void add_alias(char **argv) {
+	int i, j;
 	int position;
-	p = 0;
-	i = 0;
-	tokens[2] = NULL;
 
+	if (!argv[1]) {
+		printalias();
+		return;
+	} else if (!argv[2]) {
+		printf("Usage: alias [name] [command]\n");
+		return;
+	}
+
+	if ((position = check_alias_position(argv[1])) < 0) {
+		printf("You're storing too many aliases. Remove some to add more!\n");
+		return;
+	}
+
+	alias[position].name = (char *) malloc(sizeof(char*));
+	strcpy(alias[position].name, argv[1]);
+
+	alias[position].num_tokens = 0;
+
+	for (i = 2, j = 0; i < SZ_ARGV && argv[i]; i++, j++) {
+		alias[position].command[j] = (char *) malloc(sizeof(char*));
+		strcpy(alias[position].command[j], argv[i]);
+		alias[position].num_tokens++;
+	}
+
+	printf("Num tokens: %d\n", alias[position].num_tokens);
+
+/*
 	while (token && (p < SZ_ARGV - 1)) {
 			tokens[p++] = token;
 			if(p == 1 && token == NULL)
@@ -280,6 +303,8 @@ void add_alias(char *token, char* line, char **tokens) {
 			token = strtok(NULL, DELIM);
 		}
 		tokens[p] = 0;
+	}
+*/
 }
 
 /*
@@ -338,7 +363,7 @@ void history(char **argv){
 	}
 }
 
-char *get_input() {
+char* get_input() {
 	
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
 
@@ -389,26 +414,23 @@ char *get_input() {
 	return (input);
 }
 
-int tokenise(char *line, char **tokens) {
+
+void tokenise(char *line, char **tokens) {
 	int p;
 	char *token;
 
-	token = strtok(line, DELIM); /* initial strtok call */
+	/* Clear pre-existing tokens */
+	for (p = 0; p < SZ_ARGV; p++)
+		tokens[p] = NULL;
 
-	if(EQ(token, "alias")) {
-		add_alias(token, line, tokens);
-		return -1;
-	} else {
-		p = 0;
-		tokens[2] = NULL;
-		/* While there are more tokens and our array isn't full */
-		while (token && (p < SZ_ARGV - 1)) {
-			tokens[p++] = token;
-			token = strtok(NULL, DELIM); /* ...grab the next token */
-		}
-		tokens[p] = 0;
-		return 1;
+	p = 0;
+	token = strtok(line, DELIM); /* initial strtok call */
+	/* While there are more tokens and our array isn't full */
+	while (token && (p < SZ_ARGV - 1)) {
+		tokens[p++] = token;
+		token = strtok(NULL, DELIM); /* ...grab the next token */
 	}
+	tokens[p] = 0;
 }
 
 int internal_command(char **argv) {
@@ -431,6 +453,9 @@ int internal_command(char **argv) {
         return 0;
     } else if (EQ(argv[0], "printalias")) {
 	printalias();
+	return 0;
+    } else if(EQ(argv[0], "alias")) {
+	add_alias(argv);
 	return 0;
     } else if (EQ(argv[0], "unalias")) {
 	unalias(argv[1]);
@@ -472,22 +497,37 @@ void external_command(char **argv) {
  * is the name of the command we want to run and the following
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
-    int i;
-    
+    int alias_i;
+
     /* Let's make sure there's actually something in the array! */
     if (!**argv) {
         fprintf(stderr,"No arguments given to Execute()");
         return;
     }
-	
-    i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
 
-    if(i >= 0) /*If the command line input is an alias*/
+    alias_i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
+
+    if(alias_i >= 0) /*If the command line input is an alias*/
     {
-	Execute(alias[i].command);
-	return;	
+
+	int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
+	    num_argv_tokens = 0;
+
+	for (i = 0; i < SZ_ARGV && argv[i]; i++) {
+		num_argv_tokens++;
+	}
+
+	for (i = num_argv_tokens - 1; i > 0; i--) {
+		argv[i + num_alias_tokens - 1] = argv[i];
+	}
+
+	for (i = 0; i < num_alias_tokens; i++) {
+		argv[i] = alias[alias_i].command[i];
+	}
+
+	Execute(argv);
+	return;
     }
-    
     
     if (internal_command(argv) < 0) {
         external_command(argv);
@@ -501,14 +541,11 @@ int main() {
 	pathValue = getenv("PATH");
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
-	while (1) {
-		input = get_input();
-		if (input != NULL){
-			if(tokenise(input, argv) > 0)
-			{
-				Execute(argv);
-			}
-		}
+
+	while ((input = get_input())) {
+		tokenise(input, argv);
+		Execute(argv);
 	}
+
 	return 0;
 }
