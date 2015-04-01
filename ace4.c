@@ -46,6 +46,34 @@ static alias_t alias[MAXALIAS];
 
 const char *pathValue;
 
+/* 	function to protect against circular aliased commands,
+	calling with NULL is for the name of the most recently
+	invoked history entry ("!-1" for example) or alias name,
+	the history is reset by calling this function with no
+	arguments, a return of 1 means it has found a previous
+	call to that invokation and will be circular.
+*/
+int invoke_hist(char* command) {
+	static char* invoked[50];
+	static int num_invoked;
+	int i;
+	if (command == NULL) {
+		for (i=0; i<num_invoked; i++)
+			free(invoked[i]);
+		num_invoked = 0;
+		return 0;
+	}
+
+	for (i=0; i<num_invoked; i++) {
+		if (strcmp(command, invoked[i])==0)
+			return 1;
+	}
+	
+	invoked[num_invoked] = malloc(sizeof(char*));
+	strcpy(invoked[num_invoked++], command);
+	return 0;
+}
+
 void save_history() { 
   	FILE *out;
 	int i; 
@@ -425,15 +453,15 @@ int internal_command(char **argv) {
     } else if (EQ(argv[0], "history")) {
         history(argv);
     } else if (EQ(argv[0], "alias")) {
-	add_alias(argv);
+		add_alias(argv);
     } else if (EQ(argv[0], "unalias")) {
-	unalias(argv);
+		unalias(argv);
     } else if (!strcspn(argv[0], "!")) {	
-	tokenise(command_history(argv[0], count-1), argv);
-	Execute(argv);
+		tokenise(command_history(argv[0], count-1), argv);
+		Execute(argv);
     } else {
 	/* Return negative number if command not found */
-   	return -1;
+   		return -1;
     }
 
     return 0;
@@ -460,7 +488,7 @@ void external_command(char **argv) {
 	}
 }
 
-void dealias(char **argv) {
+int dealias(char **argv) {
 	int alias_i;
 
 	alias_i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
@@ -481,9 +509,10 @@ void dealias(char **argv) {
 		for (i = 0; i < num_alias_tokens; i++) {
 			argv[i] = alias[alias_i].command[i];
 		}
+		return 1;
 	}
 
-	return;
+	return 0;
 }
 
 /* Execute looks for the command specified by filename.
@@ -495,7 +524,15 @@ void dealias(char **argv) {
  * is the name of the command we want to run and the following
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
-    dealias(argv);
+	printf("hi\n");	
+    if (dealias(argv)==1) {
+		if (invoke_hist(argv[0])==1) {
+			printf("Aborting execution to avoid circular alias/history calls\n");
+			return;
+		}
+		Execute(argv);
+		return;
+	}
 
     if (internal_command(argv) < 0) {
         external_command(argv);
@@ -507,10 +544,11 @@ int main() {
 	char *argv[SZ_ARGV];
 	
 	pathValue = getenv("PATH");
-	chdir(getenv("HOME")); /*Changes current working directory to HOME */
+	chdir(getenv("HOME")); /* Changes current working directory to HOME */
 	load_history();
 
 	while (1) {
+		invoke_hist(NULL); /* initial call to invoke_hist for a new iteration */
 		if ((input = get_input())) {
 			tokenise(input, argv);
 			Execute(argv);
