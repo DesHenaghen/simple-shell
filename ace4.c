@@ -30,7 +30,7 @@ static int count;
 /*A structure for storing the command number and string*/
 typedef struct {
   int cmd_no;
-  char input_line[MAXIN];
+  char input_line[MAXIN + 1];
 } history_line_t;
 
 typedef struct {
@@ -140,6 +140,7 @@ void setpath(char **argv) {
 	}
 }
 
+
 /*Checks if the input is an alias or not - returns index of the alias if we find one, and -1 if not*/
 
 int check_alias(char *name) {    
@@ -149,8 +150,8 @@ int check_alias(char *name) {
 		if(NULL == alias[i].name) { /* If it's null return a negative because there's no aliases left */
 			return -1;
 		}
-		else if (strcmp(name, alias[i].name) == 0) { /* If we find an existing alias */
-			return i; /* Return it's index */
+		else if (EQ(name, alias[i].name)) { /* If we find an existing alias */
+				return i; /* Return its index */
 		}	
     }
 	return -1;
@@ -276,8 +277,6 @@ void add_alias(char **argv) {
 		alias[position].num_tokens++;
 	}
 
-	printf("Num tokens: %d\n", alias[position].num_tokens);
-
 /*
 	while (token && (p < SZ_ARGV - 1)) {
 			tokens[p++] = token;
@@ -314,7 +313,6 @@ meaning a command is invoked from history
 
 char *command_history(char *input, int count) {
 	int cmd;
-	printf("Input is: %s\n",input);
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
 		cmd = strtoul((input+2), NULL, 10);
@@ -335,9 +333,9 @@ char *command_history(char *input, int count) {
 			printf("History item does not exist\n");
 			return NULL;
 	}
-	
-	printf("%s", saved_history[cmd%20].input_line);
-	return saved_history[cmd%20].input_line;
+
+	strcpy(input, saved_history[cmd%20].input_line);
+	return input;
 }
 
 /*
@@ -363,6 +361,7 @@ void history(char **argv){
 		printf("History takes no parameters. Usage: history\n");
 	}
 }
+
 
 char* get_input() {
 	
@@ -404,6 +403,7 @@ char* get_input() {
 		return command_history(input, count); //count +1
 	}
 
+
 	count++;
 	/*after the count++, the history starts being saved at index 1 */
 	saved_history[count%20].cmd_no = count;
@@ -426,19 +426,24 @@ void tokenise(char *line, char **tokens) {
 
 	p = 0;
 	token = strtok(line, DELIM); /* initial strtok call */
+	
 	/* While there are more tokens and our array isn't full */
 	while (token && (p < SZ_ARGV - 1)) {
+
 		tokens[p++] = token;
+
 		token = strtok(NULL, DELIM); /* ...grab the next token */
+
 	}
 	tokens[p] = 0;
+
 }
 
 int internal_command(char **argv) {
     /* Internal commands */
     /* TODO: internal commands as another function */
     /* exit*/
-printf("%s\n",argv[0]);
+
     if (EQ(argv[0], "exit")) {
         quit();
     } else if (EQ(argv[0], "cd")) {
@@ -466,7 +471,7 @@ printf("%s\n",argv[0]);
 	tokenise(command_history(argv[0], count-1), argv);
 	Execute(argv);
 	return 0;
-}
+    }
 
     /* Return negative number if command not found */
     return -1;
@@ -515,8 +520,7 @@ void Execute(char *argv[]) {
 
     if(alias_i >= 0) /*If the command line input is an alias*/
     {
-
-	int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
+		int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
 	    num_argv_tokens = 0;
 
 	for (i = 0; i < SZ_ARGV && argv[i]; i++) {
@@ -548,9 +552,12 @@ int main() {
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
 
-	while ((input = get_input())) {
-		tokenise(input, argv);
-		Execute(argv);
+	while (1){
+		input = get_input();
+		if(input != NULL){
+			tokenise(input, argv);
+			Execute(argv);
+		}
 	}
 
 	return 0;
