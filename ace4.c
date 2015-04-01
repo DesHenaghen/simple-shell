@@ -463,10 +463,8 @@ printf("%s\n",argv[0]);
 	unalias(argv[1]);
 	return 0;
     } else if (!strcspn(argv[0], "!")) {	
-	if(tokenise(command_history(argv[0], count-1), argv) > 0)
-	{
-		Execute(argv);
-	}
+	tokenise(command_history(argv[0], count-1), argv);
+	Execute(argv);
 	return 0;
 }
 
