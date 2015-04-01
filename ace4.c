@@ -149,7 +149,7 @@ int check_alias(char *name) {
 		if(NULL == alias[i].name) { /* If it's null return a negative because there's no aliases left */
 			return -1;
 		}
-		else if (strcmp(name, alias[i].name) == 0) { /* If we find an existing alias */
+		else if (EQ(name, alias[i].name)) { /* If we find an existing alias */
 			return i; /* Return it's index */
 		}	
     }
@@ -416,33 +416,25 @@ printf("%s\n",argv[0]);
         quit();
     } else if (EQ(argv[0], "cd")) {
         cd(argv);
-        return 0;
     } else if (EQ(argv[0], "getpath")) {
         getpath(argv);
-        return 0;
     } else if (EQ(argv[0], "setpath")) {
         setpath(argv);
-        return 0;
     } else if (EQ(argv[0], "history")) {
         history(argv);
-        return 0;
-    } else if (EQ(argv[0], "printalias")) {
-	printalias();
-	return 0;
-    } else if(EQ(argv[0], "alias")) {
+    }else if(EQ(argv[0], "alias")) {
 	add_alias(argv);
-	return 0;
     } else if (EQ(argv[0], "unalias")) {
 	unalias(argv[1]);
-	return 0;
     } else if (!strcspn(argv[0], "!")) {	
 	tokenise(command_history(argv[0], count-1), argv);
 	Execute(argv);
-	return 0;
-}
+    } else {
+	/* Return negative number if command not found */
+   	return -1;
+    }
 
-    /* Return negative number if command not found */
-    return -1;
+    return 0;
 }
 
 void external_command(char **argv) {
@@ -463,8 +455,35 @@ void external_command(char **argv) {
 		/* parent process */
 		/* parent will wait for the child to complete */
 		wait(NULL);
-		/*printf("Child Complete\n");*/
 	}
+}
+
+void dealias(char **argv) {
+	int alias_i;
+
+	alias_i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
+
+	if(alias_i >= 0) /*If the command line input is an alias*/
+	{
+		int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
+		    num_argv_tokens = 0;
+
+		for (i = 0; i < SZ_ARGV && argv[i]; i++) {
+			num_argv_tokens++;
+		}
+
+		for (i = num_argv_tokens - 1; i > 0; i--) {
+			argv[i + num_alias_tokens - 1] = argv[i];
+		}
+
+		for (i = 0; i < num_alias_tokens; i++) {
+			argv[i] = alias[alias_i].command[i];
+		}
+
+		return;
+	}
+
+	return;
 }
 
 /* Execute looks for the command specified by filename.
@@ -476,7 +495,6 @@ void external_command(char **argv) {
  * is the name of the command we want to run and the following
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
-    int alias_i;
 
     /* Let's make sure there's actually something in the array! */
     if (!**argv) {
@@ -484,29 +502,7 @@ void Execute(char *argv[]) {
         return;
     }
 
-    alias_i = check_alias(argv[0]); /* Will return positive index if there is an alias in command*/
-
-    if(alias_i >= 0) /*If the command line input is an alias*/
-    {
-
-	int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
-	    num_argv_tokens = 0;
-
-	for (i = 0; i < SZ_ARGV && argv[i]; i++) {
-		num_argv_tokens++;
-	}
-
-	for (i = num_argv_tokens - 1; i > 0; i--) {
-		argv[i + num_alias_tokens - 1] = argv[i];
-	}
-
-	for (i = 0; i < num_alias_tokens; i++) {
-		argv[i] = alias[alias_i].command[i];
-	}
-
-	Execute(argv);
-	return;
-    }
+    dealias(argv);
     
     if (internal_command(argv) < 0) {
         external_command(argv);
