@@ -48,12 +48,11 @@ static alias_t alias[MAXALIAS];
 
 const char *pathValue;
 
-/* 	function to protect against circular aliased commands,
- calling with NULL is for the name of the most recently
- invoked history entry ("!-1" for example) or alias name,
- the history is reset by calling this function with no
- arguments, a return of 1 means it has found a previous
- call to that invokation and will be circular.
+/* Function to protect against circular aliased commands, calling
+ * with NULL is for the name of the most recently invoked history
+ * entry ("!-1" for example) or alias name, the history is reset by
+ * calling this function with no arguments, a return of 1 means it
+ * has found a previous call to that invokation and will be circular.
  */
 int invoke_hist(char* command) {
 	static char* invoked[50];
