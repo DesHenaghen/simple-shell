@@ -289,7 +289,7 @@ meaning a command is invoked from history
 
 char *command_history(char *input, int count) {
 	int cmd;
-
+	printf("Input is: %s\n",input);
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
 		cmd = strtoul((input+2), NULL, 10);
@@ -306,11 +306,12 @@ char *command_history(char *input, int count) {
 		}
 	}
 
-	if (cmd < 0 || cmd > count || cmd < count - 20){
+	if (cmd < 0 || cmd > count || cmd < count - 19){
 			printf("History item does not exist\n");
 			return NULL;
 	}
 	
+	printf("%s", saved_history[cmd%20].input_line);
 	return saved_history[cmd%20].input_line;
 }
 
@@ -415,6 +416,7 @@ int internal_command(char **argv) {
     /* Internal commands */
     /* TODO: internal commands as another function */
     /* exit*/
+printf("%s\n",argv[0]);
     if (EQ(argv[0], "exit")) {
         quit();
     } else if (EQ(argv[0], "cd")) {
@@ -435,7 +437,13 @@ int internal_command(char **argv) {
     } else if (EQ(argv[0], "unalias")) {
 	unalias(argv[1]);
 	return 0;
-    }
+    } else if (!strcspn(argv[0], "!")) {	
+	if(tokenise(command_history(argv[0], count-1), argv) > 0)
+	{
+		Execute(argv);
+	}
+	return 0;
+}
 
     /* Return negative number if command not found */
     return -1;
