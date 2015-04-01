@@ -21,6 +21,7 @@
 #define SZ_ARGV 50 /* Size of the argv array */
 #define HISTFILE ".hist_list"
 #define MAXALIAS 10
+#define _GNU_SOURCE
 
 /*Keeps count of the command number being executed*/ 
 static int count;
@@ -247,7 +248,7 @@ void unalias(char* name) {
 
 /*Adds an alias by tokenising the command line input*/
 
-add_alias(char *token, char* line, char **tokens) {
+void add_alias(char *token, char* line, char **tokens) {
 	int p;
 	int i;
 	int position;
