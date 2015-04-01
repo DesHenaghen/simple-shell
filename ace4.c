@@ -30,7 +30,7 @@ static int count;
 /*A structure for storing the command number and string*/
 typedef struct {
   int cmd_no;
-  char input_line[MAXIN + 1];
+  char input_line[MAXIN];
 } history_line_t;
 
 typedef struct {
@@ -51,11 +51,12 @@ void save_history() {
 	int i; 
 	chdir(getenv("HOME"));
 
-  if ((out = fopen(HISTFILE, "w")) == NULL)
+  if ((out = fopen(HISTFILE, "w")) == NULL) {
     perror(HISTFILE);
 
   if (out == NULL)
     return;
+  }
 
   for (i = 1; i <= LEN(saved_history); i++) { 
 
@@ -93,7 +94,8 @@ void load_history(){
 				
 	}
 	count = maxCount; // TO CHANGE - needs to find the max number of instruction
-	
+	/* TODO:             ^ */
+
 	fclose(in);
 }
 
@@ -151,7 +153,7 @@ int check_alias(char *name) {
 			return -1;
 		}
 		else if (EQ(name, alias[i].name)) { /* If we find an existing alias */
-				return i; /* Return its index */
+			return i; /* Return it's index */
 		}	
     }
 	return -1;
@@ -277,33 +279,6 @@ void add_alias(char **argv) {
 		alias[position].num_tokens++;
 	}
 
-/*
-	while (token && (p < SZ_ARGV - 1)) {
-			tokens[p++] = token;
-			if(p == 1 && token == NULL)
-			{
-				printalias();
-				return;
-			} else if(p == 2) { 
-				position = check_alias_position(token);
-				if(position >= 0)
-				{
-					alias[position].name = (char *) malloc(sizeof(char*));
-					strcpy(alias[position].name, token);
-				}			
-			} else if (p > 2) {
-				if(position >= 0)
-				{
-					alias[position].command[i] = (char *) malloc(sizeof(char*));
-					strcpy(alias[position].command[i], token);
-					i++;
-				}		
-			}
-			token = strtok(NULL, DELIM);
-		}
-		tokens[p] = 0;
-	}
-*/
 }
 
 /*
@@ -313,6 +288,7 @@ meaning a command is invoked from history
 
 char *command_history(char *input, int count) {
 	int cmd;
+
 /* '-' means counting backwards from the last commands entered */ 
 	if ('-' == input[1]) { 
 		cmd = strtoul((input+2), NULL, 10);
@@ -344,13 +320,13 @@ from history or the invocations !## are not saved. It is not printing the comman
 in order of invocation atm i.e. cmd_no order in struct - to be fixed. 
 */  
 void history(char **argv){  
-	int c, d = 1; 
+	int c = 1; 
 	if(argv[1] == NULL){
 		if(count > 20)
-			d = count + 1;
+			c = count + 1;
 
 		/* history is saved in array starting at 1 */
-		for(c = d; c<(count+21); c++){
+		for( ; c<(count+21); c++){
 
 			if(saved_history[c%20].cmd_no == 0)
 				break;
@@ -403,7 +379,6 @@ char* get_input() {
 		return command_history(input, count); //count +1
 	}
 
-
 	count++;
 	/*after the count++, the history starts being saved at index 1 */
 	saved_history[count%20].cmd_no = count;
@@ -426,23 +401,19 @@ void tokenise(char *line, char **tokens) {
 
 	p = 0;
 	token = strtok(line, DELIM); /* initial strtok call */
-	
 	/* While there are more tokens and our array isn't full */
 	while (token && (p < SZ_ARGV - 1)) {
-
 		tokens[p++] = token;
-
 		token = strtok(NULL, DELIM); /* ...grab the next token */
-
 	}
 	tokens[p] = 0;
-
 }
 
+/* FIXME: Have to declare Execute() before here. */
+/* TODO: Make it better so we don't have to. :-P */
+void Execute();
+
 int internal_command(char **argv) {
-    /* Internal commands */
-    /* TODO: internal commands as another function */
-    /* exit*/
 
     if (EQ(argv[0], "exit")) {
         quit();
@@ -458,20 +429,17 @@ int internal_command(char **argv) {
     } else if (EQ(argv[0], "history")) {
         history(argv);
         return 0;
-    } else if (EQ(argv[0], "printalias")) {
-	printalias();
-	return 0;
-    } else if(EQ(argv[0], "alias")) {
-	add_alias(argv);
-	return 0;
+    } else if (EQ(argv[0], "alias")) {
+		add_alias(argv);
+		return 0;
     } else if (EQ(argv[0], "unalias")) {
-	unalias(argv[1]);
-	return 0;
+		unalias(argv[1]);
+		return 0;
     } else if (!strcspn(argv[0], "!")) {	
-	tokenise(command_history(argv[0], count-1), argv);
-	Execute(argv);
-	return 0;
-    }
+		tokenise(command_history(argv[0], count-1), argv);
+		Execute(argv);
+		return 0;
+	}
 
     /* Return negative number if command not found */
     return -1;
@@ -495,7 +463,6 @@ void external_command(char **argv) {
 		/* parent process */
 		/* parent will wait for the child to complete */
 		wait(NULL);
-		/*printf("Child Complete\n");*/
 	}
 }
 
@@ -520,7 +487,8 @@ void Execute(char *argv[]) {
 
     if(alias_i >= 0) /*If the command line input is an alias*/
     {
-		int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
+
+	int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
 	    num_argv_tokens = 0;
 
 	for (i = 0; i < SZ_ARGV && argv[i]; i++) {
@@ -552,9 +520,8 @@ int main() {
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
 
-	while (1){
-		input = get_input();
-		if(input != NULL){
+	while (1) {
+		if ((input = get_input())) {
 			tokenise(input, argv);
 			Execute(argv);
 		}
