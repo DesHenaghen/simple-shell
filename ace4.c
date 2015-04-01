@@ -403,6 +403,10 @@ void tokenise(char *line, char **tokens) {
 	tokens[p] = 0;
 }
 
+/* FIXME: Have to declare Execute() before here. */
+/* TODO: Make it better so we don't have to. :-P */
+void Execute();
+
 int internal_command(char **argv) {
     /* Internal commands */
     /* TODO: internal commands as another function */
@@ -517,8 +521,8 @@ int main() {
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
 
-	while (TRUE) {
-		if (input = get_input()) {
+	while (1) {
+		if ((input = get_input())) {
 			tokenise(input, argv);
 			Execute(argv);
 		}
