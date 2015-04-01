@@ -275,36 +275,6 @@ void add_alias(char **argv) {
 		strcpy(alias[position].command[j], argv[i]);
 		alias[position].num_tokens++;
 	}
-
-	printf("Num tokens: %d\n", alias[position].num_tokens);
-
-/*
-	while (token && (p < SZ_ARGV - 1)) {
-			tokens[p++] = token;
-			if(p == 1 && token == NULL)
-			{
-				printalias();
-				return;
-			} else if(p == 2) { 
-				position = check_alias_position(token);
-				if(position >= 0)
-				{
-					alias[position].name = (char *) malloc(sizeof(char*));
-					strcpy(alias[position].name, token);
-				}			
-			} else if (p > 2) {
-				if(position >= 0)
-				{
-					alias[position].command[i] = (char *) malloc(sizeof(char*));
-					strcpy(alias[position].command[i], token);
-					i++;
-				}		
-			}
-			token = strtok(NULL, DELIM);
-		}
-		tokens[p] = 0;
-	}
-*/
 }
 
 /*
@@ -365,7 +335,6 @@ void history(char **argv){
 }
 
 char* get_input() {
-	
 	static char input[MAXIN]; /* declared as static so it's not on the stack */
 
 	char *cwd = get_current_dir_name();
@@ -548,9 +517,11 @@ int main() {
 	chdir(getenv("HOME")); /*Changes current working directory to HOME */
 	load_history();
 
-	while ((input = get_input())) {
-		tokenise(input, argv);
-		Execute(argv);
+	while (TRUE) {
+		if (input = get_input()) {
+			tokenise(input, argv);
+			Execute(argv);
+		}
 	}
 
 	return 0;
