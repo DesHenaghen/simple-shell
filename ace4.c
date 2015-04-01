@@ -58,18 +58,22 @@ int invoke_hist(char* command) {
 	static char* invoked[50];
 	static int num_invoked;
 	int i;
+	/* if the command supplied is NULL then reset everything */
 	if (command == NULL) {
 		for (i = 0; i < num_invoked; i++)
 			free(invoked[i]);
 		num_invoked = 0;
 		return 0;
 	}
-
+	/* Otherwise search the array of previous commands */
 	for (i = 0; i < num_invoked; i++) {
+		/* If we find that this command was called before then... */
 		if (strcmp(command, invoked[i]) == 0)
+			/* return 1 to indicate circular dependency */
 			return 1;
 	}
-
+	/* If we reach here then it's fine to execute this command... */
+	/* ...but add it to the array of previous commands */
 	invoked[num_invoked] = malloc(sizeof(char*));
 	strcpy(invoked[num_invoked++], command);
 	return 0;
@@ -108,6 +112,7 @@ void load_history() {
 	FILE* in = fopen(HISTFILE, "rw");
 
 	if (in == NULL) {
+		/* TODO should this always be failing? */
 		printf("Can't open input file in.list!\n");
 		return;
 	}
@@ -178,8 +183,9 @@ int check_alias(char *name) {
 	/* Check all aliases */
 	for (i = 0; i < MAXALIAS; i++) {
 		if (NULL == alias[i].name) {
-			return -1;
+			continue;
 		} else if (EQ(name, alias[i].name)) {
+		/* If name matches an alias name then return the index */
 			return i;
 		}
 	}
@@ -188,7 +194,8 @@ int check_alias(char *name) {
 
 /* Checks for duplicates in the alias array and also for empty
  * position in array - returns index of duplicate old aliases
- * are overwritten with the newer*/
+ * to be overwritten with the newer entry
+ */
 int check_alias_position(char* name) {
 	int i;
 	int j;
@@ -207,7 +214,7 @@ int check_alias_position(char* name) {
 	return -1;
 }
 
-/*Prints list of current aliases*/
+/* Prints list of current aliases */
 
 void printalias() {
 	int i;
@@ -215,20 +222,21 @@ void printalias() {
 	int arrayEmpty;
 
 	arrayEmpty = 1;
-
+	/* For every non-NULL alias name... */
 	for (i = 0; i < MAXALIAS; i++) {
 		if (alias[i].name == NULL) {
 			continue;
 		} else {
 			arrayEmpty = 0;
 
+			/* ...print the name... */
 			printf("Alias[%d]: %s: ", i, alias[i].name);
 
+			/* ...and all the command tokens */
 			for (p = 0; p < MAXIN; p++) {
 				if (alias[i].command[p] == NULL) {
 					break;
 				}
-
 				printf("%s ", alias[i].command[p]);
 			}
 			printf("\n");
@@ -244,13 +252,18 @@ void printalias() {
 void unalias(char* name) {
 	int i;
 	int j;
-
+	/* For every non-NULL alias... */
 	for (i = 0; i < MAXALIAS; i++) {
 		if (NULL == alias[i].name) {
 			continue;
+		/* ...if it's what we want to remove then... */
 		} else if (EQ(name, alias[i].name)) {
 			alias[i].name = NULL;
+			/* ...free the memory allocated to the 
+			name of the alias and then... */
 			free(alias[i].name);
+			/* ...free the memory allocated to each
+			individual token in the command */
 			for (j = 0; j < SZ_ARGV; j++) {
 				alias[i].command[j] = NULL;
 				free(alias[i].command[j]);
@@ -375,7 +388,7 @@ char* get_input() {
 
 	free(cwd);
 
-	/* Clear the rest of the line if it was longer than the input array */
+	/* If the line was longer than the input array... */
 	for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
 		switch (input[i]) {
 		case '\n':
@@ -383,7 +396,7 @@ char* get_input() {
 			break;
 		}
 	}
-
+	/* ...clear the rest of it */
 	if (too_much_input) {
 		while (getchar() != '\n')
 			;
@@ -436,6 +449,7 @@ void tokenise(char *line, char **tokens) {
 /* TODO: Make it better so we don't have to. :-P */
 void Execute();
 
+/* All internal commands except from history are handled here */
 int internal_command(char **argv) {
 
 	if (EQ(argv[0], "exit")) {
@@ -475,7 +489,7 @@ void external_command(char **argv) {
 	pid = fork();
 	if (pid < 0) {
 		/* error occurred */
-		fprintf(stderr, "Fork Failed");
+		fprintf(stderr, "Fork Failed\n");
 		return;
 	} else if (pid == 0) {
 		/* child process */
@@ -491,7 +505,7 @@ void external_command(char **argv) {
 
 int dealias(char **argv) {
 	int alias_i;
-
+	/* TODO someone else improve the comments here, I'm not entirely sure how this works - Derek */
 	/* Will return positive index if there is an alias in command*/
 	alias_i = check_alias(argv[0]);
 
@@ -522,16 +536,22 @@ int dealias(char **argv) {
  * 	1. Among built-in commands,
  * 	2. In the PATH.
  *
+ * If the command entered is an alias then it gets recursively
+ * stripped down until it can execute succesfully.
  * Arguments are passed as an array where the first element
  * is the name of the command we want to run and the following
- * elements are arguments to that command. */
+ * elements are arguments to that command.
+ */
+
 void Execute(char *argv[]) {
+	/* First check if the command entered is stored as an alias */
 	if (dealias(argv) == 1) {
+		/* Making sure we're not executing the same thing again */
 		if (invoke_hist(argv[0]) == 1) {
-			printf(
-					"Aborting execution to avoid circular alias/history calls\n");
+			printf("Aborting execution to avoid circular alias/history calls\n");
 			return;
 		}
+		/* Recurse with the aliased command */
 		Execute(argv);
 		return;
 	}
@@ -550,7 +570,7 @@ int main() {
 	load_history();
 
 	while (1) {
-		/* initial call to invoke_hist for a new iteration */
+		/* Initial call to invoke_hist() for a new iteration */
 		invoke_hist (NULL);
 		if ((input = get_input())) {
 			tokenise(input, argv);
