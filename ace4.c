@@ -31,7 +31,7 @@ static int count;
 typedef struct {
   int cmd_no;
   char input_line[MAXIN];
-} history_line_t;
+} history_t;
 
 typedef struct {
     char *name;
@@ -40,7 +40,7 @@ typedef struct {
 } alias_t;
 
 /* An array for storing history*/
-static history_line_t saved_history [20];
+static history_t saved_history [20];
 static alias_t alias[MAXALIAS];
 // static int aliasCount;
 
@@ -51,11 +51,10 @@ void save_history() {
 	int i; 
 	chdir(getenv("HOME"));
 
-  if ((out = fopen(HISTFILE, "w")) == NULL)
+  if ((out = fopen(HISTFILE, "w")) == NULL) {
     perror(HISTFILE);
-
-  if (out == NULL)
     return;
+  }
 
   for (i = 1; i <= LEN(saved_history); i++) { 
 
@@ -93,7 +92,8 @@ void load_history(){
 				
 	}
 	count = maxCount; // TO CHANGE - needs to find the max number of instruction
-	
+	/* TODO:             ^ */
+
 	fclose(in);
 }
 
@@ -220,16 +220,21 @@ void printalias() {
 
 /*Removes an alias*/
 
-void unalias(char* name) {
+void unalias(char **argv) {
 	int i;
 	int j;
+
+	if (!argv[1]) {
+		printf("Usage: unalias [name]\n");
+		return;
+	}
 
 	for(i = 0; i < MAXALIAS; i++)
 	{
 		if(NULL == alias[i].name)
 		{
 			continue;
-		} else if(EQ(name, alias[i].name))
+		} else if(EQ(argv[1], alias[i].name))
 		{
 			alias[i].name = NULL;
 			free(alias[i].name);
@@ -316,13 +321,13 @@ from history or the invocations !## are not saved. It is not printing the comman
 in order of invocation atm i.e. cmd_no order in struct - to be fixed. 
 */  
 void history(char **argv){  
-	int c, d = 1; 
+	int c = 1; 
 	if(argv[1] == NULL){
 		if(count > 20)
-			d = count + 1;
+			c = count + 1;
 
 		/* history is saved in array starting at 1 */
-		for(c = d; c<(count+21); c++){
+		for( ; c<(count+21); c++){
 
 			if(saved_history[c%20].cmd_no == 0)
 				break;
@@ -408,10 +413,7 @@ void tokenise(char *line, char **tokens) {
 void Execute();
 
 int internal_command(char **argv) {
-    /* Internal commands */
-    /* TODO: internal commands as another function */
-    /* exit*/
-printf("%s\n",argv[0]);
+
     if (EQ(argv[0], "exit")) {
         quit();
     } else if (EQ(argv[0], "cd")) {
@@ -422,10 +424,10 @@ printf("%s\n",argv[0]);
         setpath(argv);
     } else if (EQ(argv[0], "history")) {
         history(argv);
-    }else if(EQ(argv[0], "alias")) {
+    } else if (EQ(argv[0], "alias")) {
 	add_alias(argv);
     } else if (EQ(argv[0], "unalias")) {
-	unalias(argv[1]);
+	unalias(argv);
     } else if (!strcspn(argv[0], "!")) {	
 	tokenise(command_history(argv[0], count-1), argv);
 	Execute(argv);
@@ -479,8 +481,6 @@ void dealias(char **argv) {
 		for (i = 0; i < num_alias_tokens; i++) {
 			argv[i] = alias[alias_i].command[i];
 		}
-
-		return;
 	}
 
 	return;
@@ -495,15 +495,8 @@ void dealias(char **argv) {
  * is the name of the command we want to run and the following
  * elements are arguments to that command. */
 void Execute(char *argv[]) {
-
-    /* Let's make sure there's actually something in the array! */
-    if (!**argv) {
-        fprintf(stderr,"No arguments given to Execute()");
-        return;
-    }
-
     dealias(argv);
-    
+
     if (internal_command(argv) < 0) {
         external_command(argv);
     }
