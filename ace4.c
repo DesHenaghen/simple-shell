@@ -249,21 +249,25 @@ void printalias() {
 }
 
 /* Removes an alias */
-void unalias(char* name) {
+void unalias(char** argv) {
 	int i;
 	int j;
+
+	if (!argv[1]) {
+		printf("Usage: unalias [name]\n");
+		return;
+	}	
+
 	/* For every non-NULL alias... */
 	for (i = 0; i < MAXALIAS; i++) {
 		if (NULL == alias[i].name) {
 			continue;
-		/* ...if it's what we want to remove then... */
-		} else if (EQ(name, alias[i].name)) {
+		
+		} else if (EQ(argv[1], alias[i].name)) {
 			alias[i].name = NULL;
-			/* ...free the memory allocated to the 
-			name of the alias and then... */
+
 			free(alias[i].name);
-			/* ...free the memory allocated to each
-			individual token in the command */
+
 			for (j = 0; j < SZ_ARGV; j++) {
 				alias[i].command[j] = NULL;
 				free(alias[i].command[j]);
@@ -470,7 +474,7 @@ int internal_command(char **argv) {
 		add_alias(argv);
 		return 0;
 	} else if (EQ(argv[0], "unalias")) {
-		unalias(argv[1]);
+		unalias(argv);
 		return 0;
 	} else if (!strcspn(argv[0], "!")) {
 		tokenise(command_history(argv[0], count - 1), argv);
