@@ -513,17 +513,19 @@ int dealias(char **argv) {
 		int i = 0, num_alias_tokens = alias[alias_i].num_tokens,
 				num_argv_tokens = 0;
 
-		for (i = 0; i < SZ_ARGV && argv[i]; i++) {
+		/* Get the number of tokens in argv */
+		for (i = 0; i < SZ_ARGV && argv[i]; i++)
 			num_argv_tokens++;
-		}
 
-		for (i = num_argv_tokens - 1; i > 0; i--) {
+		/* Move everything in argv up the array to 
+		 * accommodate the tokens in alias[alias_i] */
+		for (i = num_argv_tokens - 1; i > 0; i--)
 			argv[i + num_alias_tokens - 1] = argv[i];
-		}
 
-		for (i = 0; i < num_alias_tokens; i++) {
+		/* put the tokens in alias into the start argv */
+		for (i = 0; i < num_alias_tokens; i++)
 			argv[i] = alias[alias_i].command[i];
-		}
+
 		return 1;
 	}
 
