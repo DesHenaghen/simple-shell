@@ -460,30 +460,25 @@ int internal_command(char **argv) {
 		quit();
 	} else if (EQ(argv[0], "cd")) {
 		cd(argv);
-		return 0;
 	} else if (EQ(argv[0], "getpath")) {
 		getpath(argv);
-		return 0;
 	} else if (EQ(argv[0], "setpath")) {
 		setpath(argv);
-		return 0;
 	} else if (EQ(argv[0], "history")) {
 		history(argv);
-		return 0;
 	} else if (EQ(argv[0], "alias")) {
 		add_alias(argv);
-		return 0;
 	} else if (EQ(argv[0], "unalias")) {
 		unalias(argv);
-		return 0;
 	} else if (!strcspn(argv[0], "!")) {
 		tokenise(command_history(argv[0], count - 1), argv);
 		Execute(argv);
-		return 0;
+	} else {
+		/* Return negative number if command not found */
+		return -1;
 	}
 
-	/* Return negative number if command not found */
-	return -1;
+	return 0;
 }
 
 void external_command(char **argv) {
