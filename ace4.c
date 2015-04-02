@@ -11,8 +11,6 @@
 #include <errno.h>
 #include <stdbool.h>
 
-/* The name of our shell! */
-#define SHELLNAME "HermitTheKermit2k6"
 /* The number of elements in an array */
 #define LEN(array) sizeof(array)/sizeof(array[0])
 /* Are two strings equal? */
@@ -34,7 +32,7 @@ static int count;
 typedef struct {
 	int cmd_no;
 	char input_line[MAXIN];
-} history_line_t;
+} history_t;
 
 typedef struct {
 	char *name;
@@ -43,7 +41,7 @@ typedef struct {
 } alias_t;
 
 /* An array for storing history*/
-static history_line_t saved_history[20];
+static history_t saved_history[20];
 static alias_t alias[MAXALIAS];
 
 const char *pathValue;
