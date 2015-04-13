@@ -278,10 +278,6 @@ void unalias(char** argv) {
 	printf("No aliases found of that name.\n");
 }
 
-/* Dealiases the first element in argv. If the alias dealiases to a
- * command with more than one token then it moves everything in argv
- * to a higher index in order to accommodate the new tokens. Then
- * copies the new tokens into the first indexes of argv. */
 void add_alias(char **argv) {
 	int i, j;
 	int position;
@@ -500,9 +496,12 @@ void external_command(char **argv) {
 	}
 }
 
+/* Dealiases the first element in argv. If the alias dealiases to a
+ * command with more than one token then it moves everything in argv
+ * to a higher index in order to accommodate the new tokens. Then
+ * copies the new tokens into the first indexes of argv. */
 int dealias(char **argv) {
 	int alias_i;
-	/* TODO someone else improve the comments here, I'm not entirely sure how this works - Derek */
 	/* Will return positive index if there is an alias in command*/
 	alias_i = check_alias(argv[0]);
 
