@@ -878,58 +878,40 @@ void history(char **argv) {
 /* Get input from the terminal */
 
 char* get_input() {
-
-	/* declared as static so it's not on the stack */
 	static char input[MAXIN];
-
 	char *cwd = get_current_dir_name();
-
 	bool too_much_input = true;
 	int i;
 
-	/* fgets as scanf() can't handle blank lines */
-	/* check if it was a blank line, i.e. just a '\n' input...*/
-	/*check if input is valid - i.e. not blank*/
-
+	/* Using fget to get the input line and performing
+	input validation and sanity checks */
 	do {
 		printf("[%s]%% ", cwd);
-		/*Exits on ctrl+D*/
-		if (fgets(input, MAXIN, stdin) == NULL) /* get user input */
-			quit(); /*Exit on null pointer, given by fgets()*/
-
+		if (fgets(input, MAXIN, stdin) == NULL)
+			/* Exit on null pointer returned from fgets() */
+			quit(); 
 	} while ('\n' == input[0]);
 
 	free(cwd);
-
-	/* If the line was longer than the input array... flush terminal */
+	
+	/* Ensure the input is not greater than 'MAXIN' */
 	for (i = 0; i < MAXIN && input[i] != '\0'; i++) {
-		switch (input[i]) {
-		case '\n':
+		if (input[i] == '\n')
 			too_much_input = false;
-			break;
-		}
 	}
-	/* ...clear the rest of it */
 	if (too_much_input) {
+		/* Flush the excess input from stdin */
 		while (getchar() != '\n')
 			;
 	}
- 	/*if it was a history invocation */
 
-	if (!strcspn(input, "!")) {
-		return command_history(input, count);
-	}
-
-	/*after the count++, the history starts being saved at index 1 */
+	/* Save the valid input to history */
 	count++;
-	/*If you get to this point, it is a valid command, so save it to 
-	command history */
-
 	saved_history[count % 20].cmd_no = count;
 	input[strcspn(input, "\n")] = 0;
 	strcpy(saved_history[count % 20].input_line, input);
 
-	/* If we get to this point it there has to be input so just return it. */
+	/* Finally return the valid input */
 	return (input);
 }
 
@@ -1073,6 +1055,7 @@ int dealias(char **argv) {
  */
 
 void Execute(char *argv[]) {
+	char *history;
 	/* First check if the command entered is stored as an alias */
 	if (dealias(argv) == 1) {
 		/* Making sure we're not executing the same thing again */
@@ -1081,6 +1064,13 @@ void Execute(char *argv[]) {
 			return;
 		}
 		/* Recurse with the aliased command */
+		Execute(argv);
+		return;
+	}
+
+	if (!strcspn(argv[0], "!")) {
+		history = command_history(argv[0], count);
+		tokenise(history, argv);
 		Execute(argv);
 		return;
 	}
