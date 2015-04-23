@@ -885,6 +885,7 @@ char* get_input() {
 
 	/* Using fget to get the input line and performing
 	input validation and sanity checks */
+
 	do {
 		printf("[%s]%% ", cwd);
 		if (fgets(input, MAXIN, stdin) == NULL)
@@ -1095,7 +1096,8 @@ int main() {
 		invoke_hist (NULL);
 		if ((input = get_input())) {
 			tokenise(input, argv);
-			Execute(argv);
+			if (argv[0])
+				Execute(argv);
 		}
 	}
 
