@@ -2,8 +2,8 @@ CFLAGS = -pedantic -Wall -std=c99
 
 all: shell
 
-shell: ace4.c
-	$(CC) $(CFLAGS) -o shell ace4.c
+shell: shell.c
+	$(CC) $(CFLAGS) -o shell shell.c
 
 clean:
 	$(RM) shell
